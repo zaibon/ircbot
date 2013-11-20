@@ -12,6 +12,8 @@ type IrcMsg struct {
 
 	command string
 	args    []string
+
+	channel string
 }
 
 func NewIrcMsg() *IrcMsg {
@@ -25,13 +27,18 @@ func (m *IrcMsg) Parseline(line string) {
 
 	if strings.HasPrefix(line, ":") {
 		//message send from a user
+
 		m.prefix = fields[0]
+
 		i := strings.Index(m.prefix, "!")
 		if i > 1 {
 			m.nick = m.prefix[1:i]
 		}
+
 		m.command = fields[1]
 		m.args = fields[2:]
+
+		m.channel = strings.TrimPrefix(m.args[0], ":")
 	} else {
 		//message send from the server
 		m.prefix = ""
