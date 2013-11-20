@@ -186,7 +186,29 @@ func (b *IrcBot) HandleError() {
 	}()
 }
 
+func (b *IrcBot) errChk(err error) {
+	if err != nil {
+		log.Println("Error> ", err)
+		b.Error <- err
+	}
+}
+
 func (b *IrcBot) Disconnect() {
 	b.writer.PrintfLine("QUIT")
 	b.conn.Close()
+}
+
+func (b *IrcBot) String() string {
+	s := fmt.Sprintf("server: %s\n", b.Server)
+	s += fmt.Sprintf("port: %s\n", b.Port)
+	s += fmt.Sprintf("ssl: %t\n", b.Encrypted)
+
+	if len(b.Channel) > 0 {
+		s += "channels: "
+		for _, v := range b.Channel {
+			s += fmt.Sprintf("%s ", v)
+		}
+	}
+
+	return s
 }
