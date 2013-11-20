@@ -35,6 +35,9 @@ type IrcBot struct {
 
 	//action handlers
 	Handlers map[string]ActionFunc
+
+	//are we joined in channel?
+	joined bool
 }
 
 func NewIrcBot() *IrcBot {
@@ -44,6 +47,7 @@ func NewIrcBot() *IrcBot {
 		Out:      make(chan *IrcMsg),
 		Error:    make(chan error),
 		Exit:     make(chan bool),
+		joined:   false,
 	}
 }
 
@@ -76,6 +80,8 @@ func (b *IrcBot) Join() {
 	for _, v := range b.Channel {
 		b.writer.PrintfLine("JOIN %s", v)
 	}
+	time.Sleep(2 * time.Second)
+	b.joined = true
 }
 
 func (b *IrcBot) Listen() {
@@ -121,7 +127,15 @@ func (b *IrcBot) HandleActionOut() {
 	go func() {
 		for {
 			msg := <-b.Out
-			b.writer.PrintfLine("%s :%s", msg.command, strings.Join(msg.args, " "))
+
+			//we send nothing before we sure we join channel
+			if b.joined == false {
+				continue
+			}
+
+			s := fmt.Sprintf("%s %s", msg.command, strings.Join(msg.args, " "))
+			fmt.Println("irc >> ", s)
+			b.writer.PrintfLine(s)
 		}
 	}()
 }
