@@ -144,8 +144,8 @@ func (b *IrcBot) HandleActionOut() {
 func (b *IrcBot) HandleError() {
 	go func() {
 		for {
-			err := b.Error
-			log.Printf("error > %s", err)
+			err := <-b.Error
+			fmt.Printf("error > %s", err)
 			if err != nil {
 				b.Disconnect()
 				log.Fatalln("Error ocurs :", err)
