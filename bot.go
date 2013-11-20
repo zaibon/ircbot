@@ -72,7 +72,7 @@ func (b *IrcBot) Connect() {
 	b.reader = textproto.NewReader(r)
 	b.writer = textproto.NewWriter(w)
 
-	b.writer.PrintfLine("USER %s 8* :%s", b.Nick, b.Nick)
+	b.writer.PrintfLine("USER %s 8 * :%s", b.Nick, b.Nick)
 	b.writer.PrintfLine("NICK %s", b.Nick)
 }
 
