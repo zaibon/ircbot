@@ -115,10 +115,11 @@ func (b *IrcBot) HandleActionIn() {
 		for {
 			//receive new message
 			msg := <-b.In
-			log.Println(msg.raw)
+			fmt.Println("irc << ", msg.raw)
 			//handle action
-			action := b.Handlers[msg.command]
-			action(b, &msg)
+			if action := b.Handlers[msg.command]; action != nil {
+				action(b, msg)
+			}
 		}
 	}()
 }
