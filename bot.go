@@ -2,6 +2,8 @@ package ircbot
 
 import (
 	"bufio"
+	"crypto/rand"
+	"crypto/tls"
 	"fmt"
 	"log"
 	"net"
@@ -24,6 +26,10 @@ type IrcBot struct {
 	conn   net.Conn
 	reader *textproto.Reader
 	writer *textproto.Writer
+
+	// crypto
+	Encrypted bool
+	config    tls.Config
 
 	// data flow
 	In    chan *IrcMsg
@@ -55,15 +61,30 @@ func (b *IrcBot) url() string {
 	return fmt.Sprintf("%s:%s", b.Server, b.Port)
 }
 
+func (b *IrcBot) loadCert() {
+
+}
+
 func (b *IrcBot) Connect() {
 	//launch a go routine that handle errors
 	// b.handleError()
 
 	log.Println("Info> connection to", b.url())
-	tcpCon, err := net.Dial("tcp", b.url())
-	if err != nil {
-		log.Println("Error> ", err)
-		b.Error <- err
+
+	var tcpCon net.Conn
+	var err error
+	if b.Encrypted {
+		cert, err := tls.LoadX509KeyPair("cert.pem", "key.pem")
+		b.errChk(err)
+
+		config := tls.Config{Certificates: []tls.Certificate{cert}}
+		config.Rand = rand.Reader
+		tcpCon, err = tls.Dial("tcp", b.url(), &config)
+		b.errChk(err)
+
+	} else {
+		tcpCon, err = net.Dial("tcp", b.url())
+		b.errChk(err)
 	}
 
 	b.conn = tcpCon
