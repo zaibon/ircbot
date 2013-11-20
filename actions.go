@@ -51,3 +51,11 @@ func Respond(b *IrcBot, m *IrcMsg) {
 		}
 	}
 }
+
+func ValidConnect(b *IrcBot, m *IrcMsg) {
+	s := strings.Join(m.args, " ")
+	if strings.Contains(s, b.Nick) {
+		fmt.Println("Info : connection terminated")
+		b.joined = true
+	}
+}
