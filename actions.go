@@ -15,11 +15,9 @@ type Action struct {
 
 func Pong(b *IrcBot, m *IrcMsg) {
 
-	s := fmt.Sprintf("%s", strings.Join(m.args, " "))
-	b.Out <- &IrcMsg{
-		command: "PONG",
-		args:    []string{s},
-	}
+	s := fmt.Sprintf("PONG %s", strings.Join(m.args, " "))
+	fmt.Println("irc >> ", s)
+	b.writer.PrintfLine(s)
 }
 
 func Join(b *IrcBot, m *IrcMsg) {
