@@ -26,7 +26,7 @@ func Join(b *IrcBot, m *IrcMsg) {
 		return
 	}
 
-	s := fmt.Sprintf("%s :Salut %s", b.Channel[0], m.nick)
+	s := fmt.Sprintf("%s :Salut %s", m.channel, m.nick)
 	b.Out <- &IrcMsg{
 		command: "PRIVMSG",
 		args:    []string{s},
@@ -44,7 +44,7 @@ func Respond(b *IrcBot, m *IrcMsg) {
 
 	if strings.Contains(s, b.Nick) {
 		nbr := rand.Intn(len(response))
-		line := fmt.Sprintf("%s :%s", b.Channel[0], response[nbr])
+		line := fmt.Sprintf("%s :%s", m.channel, response[nbr])
 		b.Out <- &IrcMsg{
 			command: "PRIVMSG",
 			args:    []string{line},
