@@ -98,10 +98,21 @@ func (b *IrcBot) Connect() {
 }
 
 func (b *IrcBot) Join() {
-	for _, v := range b.Channel {
-		b.writer.PrintfLine("JOIN %s", v)
+
+	//prevent to send JOIN command before we are conected
+	for {
+		if !b.joined {
+			time.Sleep(1 * time.Second)
+			continue
+		}
+		break
 	}
-	time.Sleep(2 * time.Second)
+
+	for _, v := range b.Channel {
+		s := fmt.Sprintf("JOIN %s", v)
+		fmt.Println("irc >> ", s)
+		b.writer.PrintfLine(s)
+	}
 	b.joined = true
 }
 
