@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/textproto"
 	"strings"
+	"time"
 )
 
 type IrcBot struct {
@@ -25,8 +26,8 @@ type IrcBot struct {
 	writer *textproto.Writer
 
 	// data flow
-	In    chan IrcMsg
-	Out   chan IrcMsg
+	In    chan *IrcMsg
+	Out   chan *IrcMsg
 	Error chan error
 
 	// exit flag
@@ -39,8 +40,8 @@ type IrcBot struct {
 func NewIrcBot() *IrcBot {
 	return &IrcBot{
 		Handlers: make(map[string]ActionFunc),
-		In:       make(chan IrcMsg),
-		Out:      make(chan IrcMsg),
+		In:       make(chan *IrcMsg),
+		Out:      make(chan *IrcMsg),
 		Error:    make(chan error),
 		Exit:     make(chan bool),
 	}
@@ -82,15 +83,14 @@ func (b *IrcBot) Listen() {
 	go func() {
 
 		for {
-			//read line from socket
+			//block read line from socket
 			line, err := b.reader.ReadLine()
 			if err != nil {
 				b.Error <- err
 			}
-
-			//conert line into IrcMsg
+			//convert line into IrcMsg
 			msg := Parseline(line)
-			b.In <- *msg
+			b.In <- msg
 		}
 
 	}()
@@ -101,7 +101,7 @@ func (b *IrcBot) Say(s string) {
 	msg.command = "PRIVMSG"
 	msg.args = append(msg.args, s)
 
-	b.Out <- *msg
+	b.Out <- msg
 }
 
 func (b *IrcBot) HandleActionIn() {
