@@ -42,8 +42,8 @@ type IrcBot struct {
 	//action handlers
 	Handlers map[string][]ActionFunc
 
-	//are we joined in channel?
-	joined bool
+	//are we Joined in channel?
+	Joined bool
 }
 
 func NewIrcBot() *IrcBot {
@@ -53,7 +53,7 @@ func NewIrcBot() *IrcBot {
 		Out:      make(chan *IrcMsg),
 		Error:    make(chan error),
 		Exit:     make(chan bool),
-		joined:   false,
+		Joined:   false,
 	}
 }
 
@@ -93,15 +93,25 @@ func (b *IrcBot) Connect() {
 	b.reader = textproto.NewReader(r)
 	b.writer = textproto.NewWriter(w)
 
+	//connect to server
 	b.writer.PrintfLine("USER %s 8 * :%s", b.Nick, b.Nick)
 	b.writer.PrintfLine("NICK %s", b.Nick)
+
+	//launch go routines that handle requests
+	b.listen()
+	b.handleActionIn()
+	b.handleActionOut()
+	b.HandleError()
+
+	//join all channels
+	b.join()
 }
 
-func (b *IrcBot) Join() {
+func (b *IrcBot) join() {
 
 	//prevent to send JOIN command before we are conected
 	for {
-		if !b.joined {
+		if !b.Joined {
 			time.Sleep(1 * time.Second)
 			continue
 		}
@@ -113,10 +123,10 @@ func (b *IrcBot) Join() {
 		fmt.Println("irc >> ", s)
 		b.writer.PrintfLine(s)
 	}
-	b.joined = true
+	b.Joined = true
 }
 
-func (b *IrcBot) Listen() {
+func (b *IrcBot) listen() {
 
 	go func() {
 
@@ -163,17 +173,17 @@ func (b *IrcBot) handleActionIn() {
 	}()
 }
 
-func (b *IrcBot) HandleActionOut() {
+func (b *IrcBot) handleActionOut() {
 	go func() {
 		for {
 			msg := <-b.Out
 
 			//we send nothing before we sure we join channel
-			if b.joined == false {
+			if b.Joined == false {
 				continue
 			}
 
-			s := fmt.Sprintf("%s %s", msg.command, strings.Join(msg.args, " "))
+			s := fmt.Sprintf("%s %s %s", msg.Command, msg.Channel, strings.Join(msg.Args, " "))
 			fmt.Println("irc >> ", s)
 			b.writer.PrintfLine(s)
 		}
