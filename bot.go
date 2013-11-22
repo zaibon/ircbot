@@ -55,14 +55,16 @@ func NewIrcBot() *IrcBot {
 		Exit:     make(chan bool),
 		Joined:   false,
 	}
+
+	//defautl actions, needed to run proprely
+	bot.AddAction("PING", Pong)
+	bot.AddAction("MODE", ValidConnect)
+
+	return &bot
 }
 
 func (b *IrcBot) url() string {
 	return fmt.Sprintf("%s:%s", b.Server, b.Port)
-}
-
-func (b *IrcBot) loadCert() {
-
 }
 
 func (b *IrcBot) Connect() {
