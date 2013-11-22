@@ -148,8 +148,8 @@ func (b *IrcBot) listen() {
 
 func (b *IrcBot) Say(s string) {
 	msg := NewIrcMsg()
-	msg.command = "PRIVMSG"
-	msg.args = append(msg.args, s)
+	msg.Command = "PRIVMSG"
+	msg.Args = append(msg.Args, s)
 
 	b.Out <- msg
 }
@@ -163,7 +163,7 @@ func (b *IrcBot) handleActionIn() {
 		for {
 			//receive new message
 			msg := <-b.In
-			fmt.Println("irc << ", msg.raw)
+			fmt.Println("irc << ", msg.Raw)
 			//handle action
 			actions := b.Handlers[msg.Command]
 			if len(actions) > 0 {
@@ -196,7 +196,7 @@ func (b *IrcBot) HandleError() {
 	go func() {
 		for {
 			err := <-b.Error
-			fmt.Printf("error > %s", err)
+			fmt.Printf("error >> %s", err)
 			if err != nil {
 				b.Disconnect()
 				log.Fatalln("Error ocurs :", err)
