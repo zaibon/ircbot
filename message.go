@@ -35,10 +35,11 @@ func (m *IrcMsg) Parseline(line string) {
 			m.Nick = m.Prefix[1:i]
 		}
 
-		m.command = fields[1]
-		m.args = fields[2:]
-
-		m.channel = strings.TrimPrefix(m.args[0], ":")
+		m.Command = fields[1]
+		if len(fields) >= 2 {
+			m.Channel = strings.TrimPrefix(fields[2], ":")
+			m.Args = fields[3:]
+		}
 	} else {
 		//message send from the server
 		m.Prefix = ""
