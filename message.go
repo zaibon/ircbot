@@ -5,15 +5,15 @@ import (
 )
 
 type IrcMsg struct {
-	raw    string // :prefix commad :args
-	prefix string // Nick!user@host
+	Raw    string // :prefix commad :args
+	Prefix string // Nick!user@host
 
-	nick string
+	Nick string
 
-	command string
-	args    []string
+	Command string
+	Args    []string
 
-	channel string
+	Channel string
 }
 
 func NewIrcMsg() *IrcMsg {
@@ -21,18 +21,18 @@ func NewIrcMsg() *IrcMsg {
 }
 
 func (m *IrcMsg) Parseline(line string) {
-	m.raw = line
+	m.Raw = line
 
 	fields := strings.Fields(line)
 
 	if strings.HasPrefix(line, ":") {
-		//message send from a user
+		//action of a user
 
-		m.prefix = fields[0]
+		m.Prefix = fields[0]
 
-		i := strings.Index(m.prefix, "!")
+		i := strings.Index(m.Prefix, "!")
 		if i > 1 {
-			m.nick = m.prefix[1:i]
+			m.Nick = m.Prefix[1:i]
 		}
 
 		m.command = fields[1]
@@ -41,9 +41,9 @@ func (m *IrcMsg) Parseline(line string) {
 		m.channel = strings.TrimPrefix(m.args[0], ":")
 	} else {
 		//message send from the server
-		m.prefix = ""
-		m.command = fields[0]
-		m.args = fields[1:]
+		m.Prefix = ""
+		m.Command = fields[0]
+		m.Args = fields[1:]
 	}
 
 }
