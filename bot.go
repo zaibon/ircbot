@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"net/http"
 	"net/textproto"
 	"strings"
 	"time"
@@ -202,6 +203,16 @@ func (b *IrcBot) HandleError() {
 				log.Fatalln("Error ocurs :", err)
 			}
 		}
+	}()
+}
+
+//HandleWeb handles requests receive on http server
+func (b *IrcBot) HandleWeb() {
+	go func() {
+		http.HandleFunc("/ircbot", func(w http.ResponseWriter, r *http.Request) {
+			Handler(b, w, r)
+		})
+		http.ListenAndServe(":8080", nil)
 	}()
 }
 
