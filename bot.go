@@ -40,15 +40,15 @@ type IrcBot struct {
 	Exit chan bool
 
 	//action handlers
-	Handlers map[string]ActionFunc
+	Handlers map[string][]ActionFunc
 
 	//are we joined in channel?
 	joined bool
 }
 
 func NewIrcBot() *IrcBot {
-	return &IrcBot{
-		Handlers: make(map[string]ActionFunc),
+	bot := IrcBot{
+		Handlers: make(map[string][]ActionFunc),
 		In:       make(chan *IrcMsg),
 		Out:      make(chan *IrcMsg),
 		Error:    make(chan error),
@@ -142,15 +142,22 @@ func (b *IrcBot) Say(s string) {
 	b.Out <- msg
 }
 
-func (b *IrcBot) HandleActionIn() {
+func (b *IrcBot) AddAction(command string, action ActionFunc) {
+	b.Handlers[command] = append(b.Handlers[command], action)
+}
+
+func (b *IrcBot) handleActionIn() {
 	go func() {
 		for {
 			//receive new message
 			msg := <-b.In
 			fmt.Println("irc << ", msg.raw)
 			//handle action
-			if action := b.Handlers[msg.command]; action != nil {
-				action(b, msg)
+			actions := b.Handlers[msg.Command]
+			if len(actions) > 0 {
+				for _, action := range actions {
+					action(b, msg)
+				}
 			}
 		}
 	}()
