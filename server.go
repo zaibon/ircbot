@@ -28,7 +28,7 @@ func Handler(b *IrcBot, rw http.ResponseWriter, req *http.Request) {
 	fmt.Printf("WEB << %+v", ircReq)
 
 	b.Out <- &IrcMsg{
-		Command: "PRIVMSG",
+		Command: ircReq.Command,
 		Channel: ircReq.Channel,
 		Args:    ircReq.Args,
 	}
