@@ -28,6 +28,10 @@ type IrcBot struct {
 	reader *textproto.Reader
 	writer *textproto.Writer
 
+	// web interface
+	webEnable bool
+	PortWeb   string
+
 	// crypto
 	Encrypted bool
 	config    tls.Config
@@ -105,6 +109,9 @@ func (b *IrcBot) Connect() {
 	b.handleActionIn()
 	b.handleActionOut()
 	b.HandleError()
+	if b.webEnable {
+		b.HandleWeb()
+	}
 
 	//join all channels
 	b.join()
@@ -209,10 +216,14 @@ func (b *IrcBot) HandleError() {
 //HandleWeb handles requests receive on http server
 func (b *IrcBot) HandleWeb() {
 	go func() {
+		http.HandleFunc("/qg", Gui)
+		http.HandleFunc("/send", func(w http.ResponseWriter, r *http.Request) {
+			Send(b, w, r)
+		})
 		http.HandleFunc("/ircbot", func(w http.ResponseWriter, r *http.Request) {
 			Handler(b, w, r)
 		})
-		http.ListenAndServe(":8080", nil)
+		http.ListenAndServe(":"+b.PortWeb, nil)
 	}()
 }
 
