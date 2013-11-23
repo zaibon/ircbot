@@ -29,7 +29,7 @@ type IrcBot struct {
 	writer *textproto.Writer
 
 	// web interface
-	webEnable bool
+	WebEnable bool
 	PortWeb   string
 
 	// crypto
@@ -109,7 +109,7 @@ func (b *IrcBot) Connect() {
 	b.handleActionIn()
 	b.handleActionOut()
 	b.HandleError()
-	if b.webEnable {
+	if b.WebEnable {
 		b.HandleWeb()
 	}
 
