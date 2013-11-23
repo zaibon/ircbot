@@ -5,13 +5,13 @@ import (
 )
 
 type IrcMsg struct {
-	Raw    string // :prefix commad :args
-	Prefix string // Nick!user@host
+	Raw    string // [':' <préfixe> <espace> ] <command> <params> <crlf>
+	Prefix string // <nom de serveur> | <pseudo> [ '!' <utilisateur> ] [ '@' <hôte> ]
+	Nick   string
 
-	Nick string
+	Command string // <lettre> { <lettre> } | <nombre> <nombre> <nombre>
 
-	Command string
-	Args    []string
+	Args []string // <espace> [ ':' <fin> | <milieu> <params> ]
 
 	Channel string
 }
