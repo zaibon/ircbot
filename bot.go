@@ -30,7 +30,7 @@ type IrcBot struct {
 
 	// web interface
 	WebEnable bool
-	PortWeb   string
+	WebPort   string
 
 	// crypto
 	Encrypted bool
@@ -223,7 +223,7 @@ func (b *IrcBot) HandleWeb() {
 		http.HandleFunc("/ircbot", func(w http.ResponseWriter, r *http.Request) {
 			Handler(b, w, r)
 		})
-		http.ListenAndServe(":"+b.PortWeb, nil)
+		http.ListenAndServe(":"+b.WebPort, nil)
 	}()
 }
 
