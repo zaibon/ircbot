@@ -1,4 +1,4 @@
 ircbot
 ======
 
-Simple irc bot in Go
+Simple irc bot package in Go
