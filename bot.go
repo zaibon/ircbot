@@ -15,8 +15,9 @@ import (
 
 type IrcBot struct {
 	// identity
-	User string
-	Nick string
+	User     string
+	Nick     string
+	Password string
 
 	// server info
 	Server  string
@@ -115,6 +116,8 @@ func (b *IrcBot) Connect() {
 
 	//join all channels
 	b.join()
+
+	b.identify()
 }
 
 func (b *IrcBot) join() {
@@ -134,6 +137,15 @@ func (b *IrcBot) join() {
 		b.writer.PrintfLine(s)
 	}
 	b.Joined = true
+}
+
+func (b *IrcBot) identify() {
+	//idenify with nickserv
+	if b.Password != "" {
+		s := fmt.Sprintf("PRIVMSG NickServ :identify %s %s", b.Nick, b.Password)
+		fmt.Println("irc >> ", s)
+		b.writer.PrintfLine(s)
+	}
 }
 
 func (b *IrcBot) listen() {
