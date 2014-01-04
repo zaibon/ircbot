@@ -166,10 +166,11 @@ func (b *IrcBot) listen() {
 	}()
 }
 
-func (b *IrcBot) Say(s string) {
+func (b *IrcBot) Say(channel string, text string) {
 	msg := NewIrcMsg()
 	msg.Command = "PRIVMSG"
-	msg.Args = append(msg.Args, s)
+	msg.Channel = channel
+	msg.Args = append(msg.Args, text)
 
 	b.Out <- msg
 }
