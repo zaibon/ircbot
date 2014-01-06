@@ -170,7 +170,7 @@ func (b *IrcBot) Say(channel string, text string) {
 	msg := NewIrcMsg()
 	msg.Command = "PRIVMSG"
 	msg.Channel = channel
-	msg.Args = append(msg.Args, text)
+	msg.Args = append(msg.Args, ":"+text)
 
 	b.Out <- msg
 }

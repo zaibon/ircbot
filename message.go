@@ -34,7 +34,6 @@ func (m *IrcMsg) Parseline(line string) {
 		if i > 1 {
 			m.Nick = m.Prefix[1:i]
 		}
-
 		m.Command = fields[1]
 		if len(fields) >= 2 {
 			m.Channel = strings.TrimPrefix(fields[2], ":")
