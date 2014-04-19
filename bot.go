@@ -65,8 +65,8 @@ func NewIrcBot() *IrcBot {
 	}
 
 	//defautl actions, needed to run proprely
-	bot.AddInternAction(&Pong{})
-	bot.AddInternAction(&ValidConnect{})
+	bot.addInternAction(&Pong{})
+	bot.addInternAction(&ValidConnect{})
 
 	return &bot
 }
@@ -179,7 +179,7 @@ func (b *IrcBot) Say(channel string, text string) {
 
 //AddInternAction add an action to excutre on internal command (join,connect,...)
 //command is the internal command to handle, action is an ActionFunc callback
-func (b *IrcBot) AddInternAction(a Actioner) {
+func (b *IrcBot) addInternAction(a Actioner) {
 	addAction(a, b.HandlersIntern)
 }
 
