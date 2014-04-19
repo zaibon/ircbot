@@ -42,8 +42,12 @@ func (m *IrcMsg) Parseline(line string) {
 	} else {
 		//message send from the server
 		m.Prefix = ""
-		m.Command = fields[0]
-		m.Args = fields[1:]
+		if len(fields) > 0 {
+			m.Command = fields[0]
+		}
+		if len(fields) > 1 {
+			m.Args = fields[1:]
+		}
 	}
 
 }
