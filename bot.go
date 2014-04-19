@@ -46,7 +46,8 @@ type IrcBot struct {
 	Exit chan bool
 
 	//action handlers
-	Handlers map[string][]ActionFunc
+	HandlersIntern map[string][]Actioner //handler of interanl commands
+	HandlersUser   map[string]Actioner   // handler of commands fired by user
 
 	//are we Joined in channel?
 	Joined bool
@@ -54,17 +55,18 @@ type IrcBot struct {
 
 func NewIrcBot() *IrcBot {
 	bot := IrcBot{
-		Handlers: make(map[string][]ActionFunc),
-		In:       make(chan *IrcMsg),
-		Out:      make(chan *IrcMsg),
-		Error:    make(chan error),
-		Exit:     make(chan bool),
-		Joined:   false,
+		HandlersIntern: make(map[string][]Actioner),
+		HandlersUser:   make(map[string]Actioner),
+		In:             make(chan *IrcMsg),
+		Out:            make(chan *IrcMsg),
+		Error:          make(chan error),
+		Exit:           make(chan bool),
+		Joined:         false,
 	}
 
 	//defautl actions, needed to run proprely
-	bot.AddAction("PING", Pong)
-	bot.AddAction("MODE", ValidConnect)
+	bot.AddInternAction(&Pong{})
+	bot.AddInternAction(&ValidConnect{})
 
 	return &bot
 }
@@ -175,8 +177,28 @@ func (b *IrcBot) Say(channel string, text string) {
 	b.Out <- msg
 }
 
-func (b *IrcBot) AddAction(command string, action ActionFunc) {
-	b.Handlers[command] = append(b.Handlers[command], action)
+//AddInternAction add an action to excutre on internal command (join,connect,...)
+//command is the internal command to handle, action is an ActionFunc callback
+func (b *IrcBot) AddInternAction(a Actioner) {
+	addAction(a, b.HandlersIntern)
+}
+
+//AddUserAction add an action fired by the user to handle
+//command is the commands send by user, action is an ActionFunc callback
+func (b *IrcBot) AddUserAction(a Actioner) {
+	for _, cmd := range a.Command() {
+		b.HandlersUser[cmd] = a
+	}
+}
+
+func addAction(a Actioner, acts map[string][]Actioner) {
+	if len(a.Command()) > 1 {
+		for _, cmd := range a.Command() {
+			acts[cmd] = append(acts[cmd], a)
+		}
+		return
+	}
+	acts[a.Command()[0]] = append(acts[a.Command()[0]], a)
 }
 
 func (b *IrcBot) handleActionIn() {
@@ -185,13 +207,20 @@ func (b *IrcBot) handleActionIn() {
 			//receive new message
 			msg := <-b.In
 			fmt.Println("irc << ", msg.Raw)
-			//handle action
-			actions := b.Handlers[msg.Command]
-			if len(actions) > 0 {
-				for _, action := range actions {
-					action(b, msg)
+
+			if msg.Command == "PRIVMSG" && strings.HasPrefix(msg.Args[0], ":.") {
+				action := b.HandlersUser[strings.TrimPrefix(msg.Args[0], ":")]
+				action.Do(b, msg)
+			} else {
+				actions := b.HandlersIntern[msg.Command]
+				//handle action
+				if len(actions) > 0 {
+					for _, action := range actions {
+						action.Do(b, msg)
+					}
 				}
 			}
+
 		}
 	}()
 }
