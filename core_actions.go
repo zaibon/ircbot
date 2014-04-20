@@ -17,7 +17,7 @@ type Actioner interface {
 type Pong struct{}
 
 func (p *Pong) Command() []string {
-	return []string{"PONG"}
+	return []string{"PING"}
 }
 
 func (p *Pong) Usage() string {
