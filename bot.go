@@ -72,6 +72,8 @@ func NewIrcBot(user, nick, password, server, port string, channels []string) *Ir
 		ChError:        make(chan error),
 		Exit:           make(chan bool),
 		joined:         false,
+
+		db: newDB(),
 	}
 
 	//defautl actions, needed to run proprely
