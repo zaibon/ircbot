@@ -13,22 +13,22 @@ type requestServer struct {
 	http.Server
 }
 
-func Handler(b *IrcBot, rw http.ResponseWriter, req *http.Request) {
+func handler(b *IrcBot, rw http.ResponseWriter, req *http.Request) {
 
 	bob, err := ioutil.ReadAll(req.Body)
 	if err != nil {
-		b.Error <- err
+		b.ChError <- err
 	}
 
 	ircReq, err := DecodeIrcReq(bob)
 	if err != nil {
-		b.Error <- err
+		b.ChError <- err
 		time.Sleep(1 * time.Second)
 		panic("error decoding json")
 	}
 	fmt.Printf("WEB << %+v", ircReq)
 
-	b.Out <- &IrcMsg{
+	b.ChOut <- &IrcMsg{
 		Command: ircReq.Command,
 		Channel: ircReq.Channel,
 		Args:    ircReq.Args,
@@ -37,13 +37,13 @@ func Handler(b *IrcBot, rw http.ResponseWriter, req *http.Request) {
 	rw.Write([]byte("send"))
 }
 
-func Send(b *IrcBot, rw http.ResponseWriter, req *http.Request) {
+func send(b *IrcBot, rw http.ResponseWriter, req *http.Request) {
 
 	req.ParseForm()
 	channel := req.PostFormValue("channel")
 	text := req.PostFormValue("text")
 
-	b.Out <- &IrcMsg{
+	b.ChOut <- &IrcMsg{
 		Command: "PRIVMSG",
 		Channel: channel,
 		Args: []string{
@@ -69,7 +69,7 @@ var tmpl string = `<html>
 	</body>
 </html>`
 
-func Gui(rw http.ResponseWriter, req *http.Request) {
+func gui(rw http.ResponseWriter, req *http.Request) {
 	t := template.New("form")
 	t.Parse(tmpl)
 	t.ExecuteTemplate(rw, "form", nil)

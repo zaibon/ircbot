@@ -20,7 +20,7 @@ func NewIrcMsg() *IrcMsg {
 	return &IrcMsg{}
 }
 
-func (m *IrcMsg) Parseline(line string) {
+func (m *IrcMsg) parseline(line string) {
 	m.Raw = line
 
 	fields := strings.Fields(line)
@@ -52,8 +52,9 @@ func (m *IrcMsg) Parseline(line string) {
 
 }
 
-func Parseline(line string) *IrcMsg {
+//ParseLine parse a line receive from server and return a new IrcMsg object
+func ParseLine(line string) *IrcMsg {
 	msg := NewIrcMsg()
-	msg.Parseline(line)
+	msg.parseline(line)
 	return msg
 }

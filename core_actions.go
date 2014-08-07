@@ -14,53 +14,60 @@ type Actioner interface {
 }
 
 //Pong sends a pong response to ping
-type Pong struct{}
+type pong struct{}
 
-func (p *Pong) Command() []string {
+func (p *pong) Command() []string {
 	return []string{"PING"}
 }
 
-func (p *Pong) Usage() string {
+func (p *pong) Usage() string {
 	return "pong answer to ping request"
 }
 
-func (p *Pong) Do(b *IrcBot, m *IrcMsg) {
+func (p *pong) Do(b *IrcBot, m *IrcMsg) {
 	s := fmt.Sprintf("PONG %s", strings.Join(m.Args, " "))
 	fmt.Println("irc >> ", s)
 	b.writer.PrintfLine(s)
 }
 
-// func Pong(b *IrcBot, m *IrcMsg) {
+//ValidConnect sets a flag to true is the connection succeed
+type validConnect struct{}
 
-// 	s := fmt.Sprintf("PONG %s", strings.Join(m.Args, " "))
-// 	fmt.Println("irc >> ", s)
-// 	b.writer.PrintfLine(s)
-// }
-
-type ValidConnect struct{}
-
-func (v *ValidConnect) Command() []string {
+func (v *validConnect) Command() []string {
 	return []string{"MODE"}
 }
 
-func (v *ValidConnect) Usage() string {
-	return "Valid connect set a flag to true is the connection succeed"
+func (v *validConnect) Usage() string {
+	return "ValidConnect set a flag to true is the connection succeed"
 }
 
-func (v *ValidConnect) Do(b *IrcBot, m *IrcMsg) {
+func (v *validConnect) Do(b *IrcBot, m *IrcMsg) {
 	//channel is not a good name in this case
 	//MODE command put nick at channel place
 	if strings.Contains(m.Channel, b.Nick) {
 		fmt.Println("Info : connection terminated")
-		b.Joined = true
+		b.joined = true
 	}
 }
 
-// func ValidConnect(b *IrcBot, m *IrcMsg) {
-// 	//channel is not a good name in this case
-// 	//MODE command put nick at channel place
-// 	if strings.Contains(m.Channel, b.Nick) {
-// 		fmt.Println("Info : connection terminated")
-// 		b.Joined = true
-// 	}
-// }
+type Help struct{}
+
+func (h *Help) Command() []string {
+	return []string{
+		".help",
+		".h",
+	}
+}
+
+func (h *Help) Usage() string {
+	return ".help .h : display this message"
+}
+
+func (h *Help) Do(b *IrcBot, m *IrcMsg) {
+	var output string
+
+	for cmd, _ := range b.handlersUser {
+		output += cmd + ", "
+	}
+	b.Say(m.Channel, output[:len(output)-2])
+}

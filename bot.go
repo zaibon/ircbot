@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"net/textproto"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -17,12 +18,12 @@ type IrcBot struct {
 	// identity
 	User     string
 	Nick     string
-	Password string
+	password string
 
 	// server info
-	Server  string
-	Port    string
-	Channel []string
+	server   string
+	port     string
+	channels []string
 
 	// tcp communication
 	conn   net.Conn
@@ -30,51 +31,60 @@ type IrcBot struct {
 	writer *textproto.Writer
 
 	// web interface
-	WebEnable bool
-	WebPort   string
+	webEnable bool
+	webPort   string
 
 	// crypto
-	Encrypted bool
+	encrypted bool
 	config    tls.Config
 
 	// data flow
-	In    chan *IrcMsg
-	Out   chan *IrcMsg
-	Error chan error
+	ChIn    chan *IrcMsg
+	ChOut   chan *IrcMsg
+	ChError chan error
 
 	// exit flag
 	Exit chan bool
 
 	//action handlers
-	HandlersIntern map[string][]Actioner //handler of interanl commands
-	HandlersUser   map[string]Actioner   // handler of commands fired by user
+	handlersIntern map[string][]Actioner //handler of interanl commands
+	handlersUser   map[string]Actioner   // handler of commands fired by user
 
-	//are we Joined in channel?
-	Joined bool
+	//are we joined ChIn channel?
+	joined bool
 }
 
-func NewIrcBot() *IrcBot {
+func NewIrcBot(user, nick, password, server, port string, channels []string) *IrcBot {
 	bot := IrcBot{
-		HandlersIntern: make(map[string][]Actioner),
-		HandlersUser:   make(map[string]Actioner),
-		In:             make(chan *IrcMsg),
-		Out:            make(chan *IrcMsg),
-		Error:          make(chan error),
+		User:     user,
+		Nick:     nick,
+		password: password,
+		server:   server,
+		port:     port,
+		channels: channels,
+
+		handlersIntern: make(map[string][]Actioner),
+		handlersUser:   make(map[string]Actioner),
+		ChIn:           make(chan *IrcMsg),
+		ChOut:          make(chan *IrcMsg),
+		ChError:        make(chan error),
 		Exit:           make(chan bool),
-		Joined:         false,
+		joined:         false,
 	}
 
 	//defautl actions, needed to run proprely
-	bot.AddInternAction(&Pong{})
-	bot.AddInternAction(&ValidConnect{})
+	bot.AddInternAction(&pong{})
+	bot.AddInternAction(&validConnect{})
+	bot.AddInternAction(&Help{})
 
 	return &bot
 }
 
-func (b *IrcBot) url() string {
-	return fmt.Sprintf("%s:%s", b.Server, b.Port)
-}
+/////////////////
+//Public function
+/////////////////
 
+//Connect connects the bot to the server and joins the channels
 func (b *IrcBot) Connect() {
 	//launch a go routine that handle errors
 	// b.handleError()
@@ -83,7 +93,7 @@ func (b *IrcBot) Connect() {
 
 	var tcpCon net.Conn
 	var err error
-	if b.Encrypted {
+	if b.encrypted {
 		cert, err := tls.LoadX509KeyPair("cert.pem", "key.pem")
 		b.errChk(err)
 
@@ -111,9 +121,9 @@ func (b *IrcBot) Connect() {
 	b.listen()
 	b.handleActionIn()
 	b.handleActionOut()
-	b.HandleError()
-	if b.WebEnable {
-		b.HandleWeb()
+	b.handlerError()
+	if b.webEnable {
+		b.handleWeb()
 	}
 
 	//join all channels
@@ -122,29 +132,94 @@ func (b *IrcBot) Connect() {
 	b.identify()
 }
 
+//Disconnect sends QUIT command to server and closes connections
+func (b *IrcBot) Disconnect() {
+	b.writer.PrintfLine("QUIT")
+	b.conn.Close()
+	b.Exit <- true
+}
+
+func (b *IrcBot) IsJoined() bool {
+	return b.joined
+}
+
+//Say makes the bot say text to channel
+func (b *IrcBot) Say(channel string, text string) {
+	msg := NewIrcMsg()
+	msg.Command = "PRIVMSG"
+	msg.Channel = channel
+	msg.Args = append(msg.Args, ":"+text)
+
+	b.ChOut <- msg
+}
+
+//AddInternAction add an action to excutre on internal command (join,connect,...)
+//command is the internal command to handle, action is an ActionFunc callback
+func (b *IrcBot) AddInternAction(a Actioner) {
+	addAction(a, b.handlersIntern)
+}
+
+//AddUserAction add an action fired by the user to handle
+//command is the commands send by user, action is an ActionFunc callback
+func (b *IrcBot) AddUserAction(a Actioner) {
+	for _, cmd := range a.Command() {
+		b.handlersUser[cmd] = a
+	}
+}
+
+//String implements the Stringer interface
+func (b *IrcBot) String() string {
+	s := fmt.Sprintf("server: %s\n", b.server)
+	s += fmt.Sprintf("port: %s\n", b.port)
+	s += fmt.Sprintf("ssl: %t\n", b.encrypted)
+
+	if len(b.channels) > 0 {
+		s += "channels: "
+		for _, v := range b.channels {
+			s += fmt.Sprintf("%s ", v)
+		}
+	}
+
+	return s
+}
+
+//EnableWeb enables the web interface of the bot
+func (b *IrcBot) EnableWeb() {
+	b.webEnable = true
+}
+
+//SetWebPort sets the port on wich the web interface will listen
+func (b *IrcBot) SetWebPort(port int) {
+	b.webPort = strconv.Itoa(port)
+}
+
+func (b *IrcBot) url() string {
+	return fmt.Sprintf("%s:%s", b.server, b.port)
+}
+
 func (b *IrcBot) join() {
 
 	//prevent to send JOIN command before we are conected
 	for {
-		if !b.Joined {
+		if !b.joined {
 			time.Sleep(1 * time.Second)
 			continue
 		}
 		break
 	}
 
-	for _, v := range b.Channel {
+	for _, v := range b.channels {
 		s := fmt.Sprintf("JOIN %s", v)
 		fmt.Println("irc >> ", s)
 		b.writer.PrintfLine(s)
 	}
-	b.Joined = true
+	b.joined = true
 }
 
 func (b *IrcBot) identify() {
 	//idenify with nickserv
-	if b.Password != "" {
-		s := fmt.Sprintf("PRIVMSG NickServ :identify %s %s", b.Nick, b.Password)
+	if b.password != "" {
+		s := fmt.Sprintf("PRIVMSG NickServ :identify %s %s", b.Nick, b.password)
 		fmt.Println("irc >> ", s)
 		b.writer.PrintfLine(s)
 	}
@@ -158,37 +233,14 @@ func (b *IrcBot) listen() {
 			//block read line from socket
 			line, err := b.reader.ReadLine()
 			if err != nil {
-				b.Error <- err
+				b.ChError <- err
 			}
 			//convert line into IrcMsg
-			msg := Parseline(line)
-			b.In <- msg
+			msg := ParseLine(line)
+			b.ChIn <- msg
 		}
 
 	}()
-}
-
-func (b *IrcBot) Say(channel string, text string) {
-	msg := NewIrcMsg()
-	msg.Command = "PRIVMSG"
-	msg.Channel = channel
-	msg.Args = append(msg.Args, ":"+text)
-
-	b.Out <- msg
-}
-
-//AddInternAction add an action to excutre on internal command (join,connect,...)
-//command is the internal command to handle, action is an ActionFunc callback
-func (b *IrcBot) AddInternAction(a Actioner) {
-	addAction(a, b.HandlersIntern)
-}
-
-//AddUserAction add an action fired by the user to handle
-//command is the commands send by user, action is an ActionFunc callback
-func (b *IrcBot) AddUserAction(a Actioner) {
-	for _, cmd := range a.Command() {
-		b.HandlersUser[cmd] = a
-	}
 }
 
 func addAction(a Actioner, acts map[string][]Actioner) {
@@ -205,16 +257,20 @@ func (b *IrcBot) handleActionIn() {
 	go func() {
 		for {
 			//receive new message
-			msg := <-b.In
+			msg := <-b.ChIn
 			fmt.Println("irc << ", msg.Raw)
 
+			if msg.Command == "JOIN" && msg.Nick == b.Nick {
+				b.joined = true
+			}
+
 			if msg.Command == "PRIVMSG" && strings.HasPrefix(msg.Args[0], ":.") {
-				action, ok := b.HandlersUser[strings.TrimPrefix(msg.Args[0], ":")]
+				action, ok := b.handlersUser[strings.TrimPrefix(msg.Args[0], ":")]
 				if ok {
 					action.Do(b, msg)
 				}
 			} else {
-				actions, ok := b.HandlersIntern[msg.Command]
+				actions, ok := b.handlersIntern[msg.Command]
 				//handle action
 				if ok && len(actions) > 0 {
 					for _, action := range actions {
@@ -229,10 +285,10 @@ func (b *IrcBot) handleActionIn() {
 func (b *IrcBot) handleActionOut() {
 	go func() {
 		for {
-			msg := <-b.Out
+			msg := <-b.ChOut
 
 			//we send nothing before we sure we join channel
-			if b.Joined == false {
+			if b.joined == false {
 				continue
 			}
 
@@ -243,56 +299,36 @@ func (b *IrcBot) handleActionOut() {
 	}()
 }
 
-func (b *IrcBot) HandleError() {
+func (b *IrcBot) handlerError() {
 	go func() {
 		for {
-			err := <-b.Error
+			err := <-b.ChError
 			fmt.Printf("error >> %s", err)
 			if err != nil {
 				b.Disconnect()
-				log.Fatalln("Error ocurs :", err)
+				log.Fatalln("ChError ocurs :", err)
 			}
 		}
 	}()
 }
 
-//HandleWeb handles requests receive on http server
-func (b *IrcBot) HandleWeb() {
+//handleWeb handles requests receive on http server
+func (b *IrcBot) handleWeb() {
 	go func() {
-		http.HandleFunc("/qg", Gui)
+		http.HandleFunc("/qg", gui)
 		http.HandleFunc("/send", func(w http.ResponseWriter, r *http.Request) {
-			Send(b, w, r)
+			send(b, w, r)
 		})
 		http.HandleFunc("/ircbot", func(w http.ResponseWriter, r *http.Request) {
-			Handler(b, w, r)
+			handler(b, w, r)
 		})
-		http.ListenAndServe(":"+b.WebPort, nil)
+		http.ListenAndServe(":"+b.webPort, nil)
 	}()
 }
 
 func (b *IrcBot) errChk(err error) {
 	if err != nil {
-		log.Println("Error> ", err)
-		b.Error <- err
+		log.Println("ChError> ", err)
+		b.ChError <- err
 	}
-}
-
-func (b *IrcBot) Disconnect() {
-	b.writer.PrintfLine("QUIT")
-	b.conn.Close()
-}
-
-func (b *IrcBot) String() string {
-	s := fmt.Sprintf("server: %s\n", b.Server)
-	s += fmt.Sprintf("port: %s\n", b.Port)
-	s += fmt.Sprintf("ssl: %t\n", b.Encrypted)
-
-	if len(b.Channel) > 0 {
-		s += "channels: "
-		for _, v := range b.Channel {
-			s += fmt.Sprintf("%s ", v)
-		}
-	}
-
-	return s
 }
