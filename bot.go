@@ -52,6 +52,8 @@ type IrcBot struct {
 
 	//are we joined ChIn channel?
 	joined bool
+
+	db *DB
 }
 
 func NewIrcBot(user, nick, password, server, port string, channels []string) *IrcBot {
@@ -76,6 +78,14 @@ func NewIrcBot(user, nick, password, server, port string, channels []string) *Ir
 	bot.AddInternAction(&pong{})
 	bot.AddInternAction(&validConnect{})
 	bot.AddInternAction(&Help{})
+
+	//init database
+	if err := bot.db.open("irc.db"); err != nil {
+		panic(err)
+	}
+	if err := bot.db.init(); err != nil {
+		panic(err)
+	}
 
 	return &bot
 }
@@ -238,6 +248,9 @@ func (b *IrcBot) listen() {
 			//convert line into IrcMsg
 			msg := ParseLine(line)
 			b.ChIn <- msg
+			if err := logMsg(msg, b.db); err != nil {
+				b.ChError <- err
+			}
 		}
 
 	}()
