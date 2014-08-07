@@ -209,18 +209,19 @@ func (b *IrcBot) handleActionIn() {
 			fmt.Println("irc << ", msg.Raw)
 
 			if msg.Command == "PRIVMSG" && strings.HasPrefix(msg.Args[0], ":.") {
-				action := b.HandlersUser[strings.TrimPrefix(msg.Args[0], ":")]
-				action.Do(b, msg)
+				action, ok := b.HandlersUser[strings.TrimPrefix(msg.Args[0], ":")]
+				if ok {
+					action.Do(b, msg)
+				}
 			} else {
-				actions := b.HandlersIntern[msg.Command]
+				actions, ok := b.HandlersIntern[msg.Command]
 				//handle action
-				if len(actions) > 0 {
+				if ok && len(actions) > 0 {
 					for _, action := range actions {
 						action.Do(b, msg)
 					}
 				}
 			}
-
 		}
 	}()
 }
