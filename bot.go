@@ -173,7 +173,7 @@ func (b *IrcBot) Say(channel string, text string) {
 	b.ChOut <- msg
 }
 
-//AddInternAction add an action to excutre on internal command (join,connect,...)
+//AddInternAction add an action to excecute on internal command (join,connect,...)
 //command is the internal command to handle, action is an ActionFunc callback
 func (b *IrcBot) AddInternAction(a Actioner) {
 	addAction(a, b.handlersIntern)
