@@ -97,29 +97,35 @@ func NewIrcBot(user, nick, password, server, port string, channels []string) *Ir
 /////////////////
 
 //Connect connects the bot to the server and joins the channels
-func (b *IrcBot) Connect() {
+func (b *IrcBot) Connect() error {
 	//launch a go routine that handle errors
 	// b.handleError()
 
 	log.Println("Info> connection to", b.url())
 
-	var tcpCon net.Conn
-	var err error
 	if b.encrypted {
 		cert, err := tls.LoadX509KeyPair("cert.pem", "key.pem")
-		b.errChk(err)
+		if err != nil {
+			return err
+		}
 
 		config := tls.Config{Certificates: []tls.Certificate{cert}}
 		config.Rand = rand.Reader
-		tcpCon, err = tls.Dial("tcp", b.url(), &config)
-		b.errChk(err)
+		conn, err := tls.Dial("tcp", b.url(), &config)
+		if err != nil {
+			return err
 
+		}
+		b.conn = conn
 	} else {
-		tcpCon, err = net.Dial("tcp", b.url())
-		b.errChk(err)
+		conn, err := net.Dial("tcp", b.url())
+		if err != nil {
+			return err
+
+		}
+		b.conn = conn
 	}
 
-	b.conn = tcpCon
 	r := bufio.NewReader(b.conn)
 	w := bufio.NewWriter(b.conn)
 	b.reader = textproto.NewReader(r)
@@ -142,6 +148,8 @@ func (b *IrcBot) Connect() {
 	b.join()
 
 	b.identify()
+
+	return nil
 }
 
 //Disconnect sends QUIT command to server and closes connections
@@ -273,14 +281,15 @@ func (b *IrcBot) handleActionIn() {
 		for {
 			//receive new message
 			msg := <-b.ChIn
-			fmt.Println("irc << ", msg.Raw)
+			// fmt.Println("irc << ", msg.Raw)
 
 			if msg.Command == "JOIN" && msg.Nick == b.Nick {
 				b.joined = true
 			}
 
 			if msg.Command == "PRIVMSG" && strings.HasPrefix(msg.Args[0], ":.") {
-				action, ok := b.handlersUser[strings.TrimPrefix(msg.Args[0], ":")]
+				cmd := strings.TrimPrefix(msg.Args[0], ":")
+				action, ok := b.handlersUser[cmd]
 				if ok {
 					action.Do(b, msg)
 				}
@@ -308,7 +317,7 @@ func (b *IrcBot) handleActionOut() {
 			}
 
 			s := fmt.Sprintf("%s %s %s", msg.Command, msg.Channel, strings.Join(msg.Args, " "))
-			fmt.Println("irc >> ", s)
+			// fmt.Println("irc >> ", s)
 			b.writer.PrintfLine(s)
 		}
 	}()

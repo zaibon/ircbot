@@ -71,7 +71,7 @@ func (d *DB) exec(sql string, args ...interface{}) error {
 func logMsg(m *IrcMsg, db *DB) error {
 	sql := "INSERT INTO logs (nick,message,channel,timestamp) VALUES ($nick,$message,$channel,$timestamp)"
 
-	msg := strings.Join(m.Args[1:], " ")
+	msg := strings.Join(m.Args, " ")
 	if err := db.exec(sql, m.Nick, msg, m.Channel, time.Now()); err != nil {
 		db.log.Printf("error inserting logs : %s", err.Error())
 		return err
