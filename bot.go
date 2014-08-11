@@ -79,7 +79,7 @@ func NewIrcBot(user, nick, password, server, port string, channels []string) *Ir
 	//defautl actions, needed to run proprely
 	bot.AddInternAction(&pong{})
 	bot.AddInternAction(&validConnect{})
-	bot.AddInternAction(&Help{})
+	bot.AddUserAction(&Help{})
 
 	//init database
 	if err := bot.db.open("irc.db"); err != nil {
