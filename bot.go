@@ -41,10 +41,7 @@ type IrcBot struct {
 
 	//action handlers
 	handlersIntern map[string][]Actioner //handler of interanl commands
-	handlersUser   map[string]Actioner   // handler of commands fired by user
-
-	//are we joined ChIn channel?
-	joined bool
+	HandlersUser   map[string]Actioner   // handler of commands fired by user
 
 	db *DB
 }
@@ -59,7 +56,7 @@ func NewIrcBot(user, nick, password, server, port string, channels []string) *Ir
 		channels: channels,
 
 		handlersIntern: make(map[string][]Actioner),
-		handlersUser:   make(map[string]Actioner),
+		HandlersUser:   make(map[string]Actioner),
 		ChIn:           make(chan *IrcMsg),
 		ChOut:          make(chan *IrcMsg),
 		ChError:        make(chan error),
@@ -170,7 +167,7 @@ func (b *IrcBot) AddInternAction(a Actioner) {
 //command is the commands send by user, action is an ActionFunc callback
 func (b *IrcBot) AddUserAction(a Actioner) {
 	for _, cmd := range a.Command() {
-		b.handlersUser[cmd] = a
+		b.HandlersUser[cmd] = a
 	}
 }
 
