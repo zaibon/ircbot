@@ -209,32 +209,28 @@ func (b *IrcBot) listen() {
 			if err != nil {
 				b.ChError <- err
 			}
-			// fmt.Println("DEBUG:", line)
+			fmt.Println("DEBUG:", line)
 
-			//remove prefix from raw message
-			//usefull to select how to handle message
-			withoutPrefix := strings.SplitAfterN(line, " ", 2)[1]
+			//convert line into IrcMsg
+			msg := ParseLine(line)
 
 			// end of MODT
-			if strings.Contains(withoutPrefix, "376") {
+			if msg.Command == "376" {
 				b.join()
 			}
 
-			if strings.Contains(withoutPrefix, "PING") {
-				out := strings.Replace(withoutPrefix, "PING", "PONG", -1)
+			if msg.Command == "PING" {
+				out := strings.Replace(line, "PING", "PONG", -1)
 				b.writer.PrintfLine(out)
-				// fmt.Println("DEBUG:", out)
+				fmt.Println("DEBUG:", out)
 			}
 
-			if strings.Contains(line, "PRIVMSG") || strings.Contains(line, "JOIN") {
-				//convert line into IrcMsg
-				msg := ParseLine(line)
+			if msg.Command == "PRIVMSG" || msg.Command == "JOIN" {
 				b.ChIn <- msg
 
 				if err := logMsg(msg, b.db); err != nil {
 					b.ChError <- err
 				}
-
 			}
 		}
 
