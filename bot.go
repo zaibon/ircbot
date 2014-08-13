@@ -61,15 +61,9 @@ func NewIrcBot(user, nick, password, server, port string, channels []string) *Ir
 		ChOut:          make(chan *IrcMsg),
 		ChError:        make(chan error),
 		Exit:           make(chan bool),
-		joined:         false,
 
 		db: newDB(),
 	}
-
-	//defautl actions, needed to run proprely
-	bot.AddInternAction(&pong{})
-	bot.AddInternAction(&validConnect{})
-	bot.AddUserAction(&Help{})
 
 	//init database
 	if err := bot.db.open("irc.db"); err != nil {
@@ -187,37 +181,17 @@ func (b *IrcBot) String() string {
 	return s
 }
 
-//EnableWeb enables the web interface of the bot
-func (b *IrcBot) EnableWeb() {
-	b.webEnable = true
-}
-
-//SetWebPort sets the port on wich the web interface will listen
-func (b *IrcBot) SetWebPort(port int) {
-	b.webPort = strconv.Itoa(port)
-}
-
 func (b *IrcBot) url() string {
 	return fmt.Sprintf("%s:%s", b.server, b.port)
 }
 
 func (b *IrcBot) join() {
 
-	//prevent to send JOIN command before we are conected
-	for {
-		if !b.joined {
-			time.Sleep(1 * time.Second)
-			continue
-		}
-		break
-	}
-
 	for _, v := range b.channels {
 		s := fmt.Sprintf("JOIN %s", v)
 		fmt.Println("irc >> ", s)
 		b.writer.PrintfLine(s)
 	}
-	b.joined = true
 }
 
 func (b *IrcBot) identify() {
