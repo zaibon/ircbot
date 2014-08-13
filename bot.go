@@ -137,16 +137,12 @@ func (b *IrcBot) Disconnect() {
 	b.Exit <- true
 }
 
-func (b *IrcBot) IsJoined() bool {
-	return b.joined
-}
-
 //Say makes the bot say text to channel
 func (b *IrcBot) Say(channel string, text string) {
 	msg := NewIrcMsg()
 	msg.Command = "PRIVMSG"
-	msg.Channel = channel
-	msg.Args = append(msg.Args, ":"+text)
+	msg.CmdParams = []string{channel}
+	msg.Trailing = []string{":", text}
 
 	b.ChOut <- msg
 }
@@ -213,11 +209,32 @@ func (b *IrcBot) listen() {
 			if err != nil {
 				b.ChError <- err
 			}
-			//convert line into IrcMsg
-			msg := ParseLine(line)
-			b.ChIn <- msg
-			if err := logMsg(msg, b.db); err != nil {
-				b.ChError <- err
+			// fmt.Println("DEBUG:", line)
+
+			//remove prefix from raw message
+			//usefull to select how to handle message
+			withoutPrefix := strings.SplitAfterN(line, " ", 2)[1]
+
+			// end of MODT
+			if strings.Contains(withoutPrefix, "376") {
+				b.join()
+			}
+
+			if strings.Contains(withoutPrefix, "PING") {
+				out := strings.Replace(withoutPrefix, "PING", "PONG", -1)
+				b.writer.PrintfLine(out)
+				// fmt.Println("DEBUG:", out)
+			}
+
+			if strings.Contains(line, "PRIVMSG") || strings.Contains(line, "JOIN") {
+				//convert line into IrcMsg
+				msg := ParseLine(line)
+				b.ChIn <- msg
+
+				if err := logMsg(msg, b.db); err != nil {
+					b.ChError <- err
+				}
+
 			}
 		}
 
@@ -239,25 +256,21 @@ func (b *IrcBot) handleActionIn() {
 		for {
 			//receive new message
 			msg := <-b.ChIn
-			// fmt.Println("irc << ", msg.Raw)
+			// fmt.Println("DEBUG :", msg)
 
-			if msg.Command == "JOIN" && msg.Nick == b.Nick {
-				b.joined = true
-			}
-
-			if msg.Command == "PRIVMSG" && strings.HasPrefix(msg.Args[0], ":.") {
-				cmd := strings.TrimPrefix(msg.Args[0], ":")
-				action, ok := b.handlersUser[cmd]
+			//action fired by user
+			if msg.Command == "PRIVMSG" && strings.HasPrefix(msg.Trailing[0], ".") {
+				action, ok := b.HandlersUser[msg.Trailing[0]]
 				if ok {
 					action.Do(b, msg)
 				}
-			} else {
-				actions, ok := b.handlersIntern[msg.Command]
-				//handle action
-				if ok && len(actions) > 0 {
-					for _, action := range actions {
-						action.Do(b, msg)
-					}
+			}
+
+			//action fired by event
+			actions, ok := b.handlersIntern[msg.Command]
+			if ok && len(actions) > 0 {
+				for _, action := range actions {
+					action.Do(b, msg)
 				}
 			}
 		}
@@ -269,13 +282,8 @@ func (b *IrcBot) handleActionOut() {
 		for {
 			msg := <-b.ChOut
 
-			//we send nothing before we sure we join channel
-			if b.joined == false {
-				continue
-			}
-
-			s := fmt.Sprintf("%s %s %s", msg.Command, msg.Channel, strings.Join(msg.Args, " "))
-			// fmt.Println("irc >> ", s)
+			s := fmt.Sprintf("%s %s %s", msg.Command, strings.Join(msg.CmdParams, " "), strings.Join(msg.Trailing, " "))
+			fmt.Println("irc >> ", s)
 			b.writer.PrintfLine(s)
 		}
 	}()
