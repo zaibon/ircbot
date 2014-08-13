@@ -1,19 +1,15 @@
 package ircbot
 
-import (
-	"strings"
-)
+import "strings"
 
 type IrcMsg struct {
-	Raw    string // [':' <préfixe> <espace> ] <command> <params> <crlf>
-	Prefix string // <nom de serveur> | <pseudo> [ '!' <utilisateur> ] [ '@' <hôte> ]
-	Nick   string
+	Raw    string
+	Prefix string
 
-	Command string // <lettre> { <lettre> } | <nombre> <nombre> <nombre>
+	Command   string
+	CmdParams []string
 
-	Args []string // <espace> [ ':' <fin> | <milieu> <params> ]
-
-	Channel string
+	Trailing []string
 }
 
 func NewIrcMsg() *IrcMsg {
@@ -21,35 +17,38 @@ func NewIrcMsg() *IrcMsg {
 }
 
 func (m *IrcMsg) parseline(line string) {
-	m.Raw = line
-
-	fields := strings.Fields(line)
+	prefixEnd, trailingStart := -1, len(line)
+	m.Prefix, m.Command = "", ""
 
 	if strings.HasPrefix(line, ":") {
-		//action of a user
-
-		m.Prefix = fields[0]
-
-		i := strings.Index(m.Prefix, "!")
-		if i > 1 {
-			m.Nick = m.Prefix[1:i]
-		}
-		m.Command = fields[1]
-		if len(fields) >= 2 {
-			m.Channel = strings.TrimPrefix(fields[2], ":")
-			m.Args = fields[3:]
-		}
-	} else {
-		//message send from the server
-		m.Prefix = ""
-		if len(fields) > 0 {
-			m.Command = fields[0]
-		}
-		if len(fields) > 1 {
-			m.Args = fields[1:]
-		}
+		prefixEnd = strings.Index(line, " ")
+		m.Prefix = line[1:prefixEnd]
 	}
 
+	trailingStart = strings.Index(line, " :")
+	if trailingStart >= 0 {
+		m.Trailing = strings.Fields(line[trailingStart+2:])
+	} else {
+		trailingStart = len(line) - 1
+	}
+
+	cmdAndParams := strings.Fields(line[(prefixEnd + 1) : trailingStart+1])
+	m.Command = cmdAndParams[0]
+	if len(cmdAndParams) > 1 {
+		m.CmdParams = cmdAndParams[1:]
+	}
+}
+
+func (m *IrcMsg) Channel() string {
+	return m.CmdParams[0]
+}
+
+func (m *IrcMsg) Nick() string {
+	if strings.Contains(m.Prefix, "!") {
+		tmp := strings.SplitAfterN(m.Prefix, "!", 2)[0]
+		return tmp[:len(tmp)-1]
+	}
+	return ""
 }
 
 //ParseLine parse a line receive from server and return a new IrcMsg object
