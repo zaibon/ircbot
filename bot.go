@@ -7,11 +7,8 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"net/http"
 	"net/textproto"
-	"strconv"
 	"strings"
-	"time"
 )
 
 type IrcBot struct {
@@ -29,10 +26,6 @@ type IrcBot struct {
 	conn   net.Conn
 	reader *textproto.Reader
 	writer *textproto.Writer
-
-	// web interface
-	webEnable bool
-	webPort   string
 
 	// crypto
 	encrypted bool
@@ -140,12 +133,6 @@ func (b *IrcBot) Connect() error {
 	b.handleActionIn()
 	b.handleActionOut()
 	b.handlerError()
-	if b.webEnable {
-		b.handleWeb()
-	}
-
-	//join all channels
-	b.join()
 
 	b.identify()
 
@@ -333,20 +320,6 @@ func (b *IrcBot) handlerError() {
 				log.Fatalln("ChError ocurs :", err)
 			}
 		}
-	}()
-}
-
-//handleWeb handles requests receive on http server
-func (b *IrcBot) handleWeb() {
-	go func() {
-		http.HandleFunc("/qg", gui)
-		http.HandleFunc("/send", func(w http.ResponseWriter, r *http.Request) {
-			send(b, w, r)
-		})
-		http.HandleFunc("/ircbot", func(w http.ResponseWriter, r *http.Request) {
-			handler(b, w, r)
-		})
-		http.ListenAndServe(":"+b.webPort, nil)
 	}()
 }
 
