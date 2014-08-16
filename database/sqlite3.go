@@ -37,23 +37,6 @@ func (d *DB) Path(name ...string) string {
 	return d.conn.Path(n)
 }
 
-// func (d *DB) init() error {
-// 	if d.db == nil {
-// 		d.log.Printf("should open connection before initialize database\n")
-// 	}
-
-// 	if err := d.Exec(`CREATE TABLE IF NOT EXISTS logs(
-// 		id INTEGER CONSTRAINT line_PK PRIMARY KEY,
-// 		nick STRING,
-// 		message TEXT,
-// 		channel STRING,
-// 		timestamp INTEGER)`); err != nil {
-
-// 		return err
-// 	}
-// 	return nil
-// }
-
 func (d *DB) Close() error {
 	return d.conn.Close()
 }
@@ -74,6 +57,11 @@ func (d *DB) Exec(sql string, args ...interface{}) error {
 		logger.Printf("error exec : %s : %s", sql, err.Error())
 	}
 	return err
+}
+
+func (d *DB) Prepare(sql string) (*sqlite3.Stmt, error) {
+	logger.Println("PREPARE %s", sql)
+	return d.conn.Prepare(sql)
 }
 
 // func logMsg(m *IrcMsg, db *DB) error {
