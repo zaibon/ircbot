@@ -9,6 +9,8 @@ import (
 	"net"
 	"net/textproto"
 	"strings"
+
+	db "github.com/Zaibon/ircbot/database"
 )
 
 type IrcBot struct {
@@ -43,10 +45,11 @@ type IrcBot struct {
 	handlersIntern map[string][]Actioner //handler of interanl commands
 	HandlersUser   map[string]Actioner   // handler of commands fired by user
 
-	db *DB
+	//database
+	db *db.DB
 }
 
-func NewIrcBot(user, nick, password, server, port string, channels []string) *IrcBot {
+func NewIrcBot(user, nick, password, server, port string, channels []string, DBPath string) *IrcBot {
 	bot := IrcBot{
 		User:     user,
 		Nick:     nick,
@@ -61,15 +64,12 @@ func NewIrcBot(user, nick, password, server, port string, channels []string) *Ir
 		ChOut:          make(chan *IrcMsg),
 		ChError:        make(chan error),
 		Exit:           make(chan bool),
-
-		db: newDB(),
 	}
 
 	//init database
-	if err := bot.db.open("irc.db"); err != nil {
-		panic(err)
-	}
-	if err := bot.db.init(); err != nil {
+	var err error
+	bot.db, err = db.Open(DBPath)
+	if err != nil {
 		panic(err)
 	}
 
@@ -159,6 +159,12 @@ func (b *IrcBot) AddUserAction(a Actioner) {
 	for _, cmd := range a.Command() {
 		b.HandlersUser[cmd] = a
 	}
+}
+
+//DBConnection return a new connection do the database
+//use it if your custom action need to access the database
+func (b *IrcBot) DBConnection() (*db.DB, error) {
+	return db.Open(b.db.Path())
 }
 
 //String implements the Stringer interface
