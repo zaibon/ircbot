@@ -233,10 +233,6 @@ func (b *IrcBot) listen() {
 
 			if msg.Command == "PRIVMSG" || msg.Command == "JOIN" {
 				b.ChIn <- msg
-
-				if err := logMsg(msg, b.db); err != nil {
-					b.ChError <- err
-				}
 			}
 		}
 
