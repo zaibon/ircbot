@@ -2,6 +2,7 @@ package ircbot
 
 import "strings"
 
+//IrcMsg represent a message receive or send to the irc server
 type IrcMsg struct {
 	Raw    string
 	Prefix string
@@ -39,10 +40,12 @@ func (m *IrcMsg) parseline(line string) {
 	}
 }
 
+//Channel return the channel that send the IrcMsg
 func (m *IrcMsg) Channel() string {
 	return m.CmdParams[0]
 }
 
+//Channel return the nickname of the user who send IrcMsg
 func (m *IrcMsg) Nick() string {
 	if strings.Contains(m.Prefix, "!") {
 		tmp := strings.SplitAfterN(m.Prefix, "!", 2)[0]

@@ -13,6 +13,7 @@ import (
 	db "github.com/Zaibon/ircbot/database"
 )
 
+//IrcBot represent the bot in general
 type IrcBot struct {
 	// identity
 	User     string
@@ -34,8 +35,15 @@ type IrcBot struct {
 	config    tls.Config
 
 	// data flow
-	ChIn    chan *IrcMsg
-	ChOut   chan *IrcMsg
+
+	//channel to send *IrcMsg to the goroutine that handle input message
+	//You usualy don't need to send anything there. It's useful when creating custom actionner
+	ChIn chan *IrcMsg
+	//channel to send *IrcMsg to the goroutine that handle output message
+	//every *IrcMsg send in this channel will be send to the server
+	//You usualy don't need to send anything there. It's useful when creating custom actionner
+	ChOut chan *IrcMsg
+	//channel to send *IrcMsg to the goroutine that handle errors
 	ChError chan error
 
 	// exit flag
@@ -43,7 +51,7 @@ type IrcBot struct {
 
 	//action handlers
 	handlersIntern map[string][]Actioner //handler of interanl commands
-	HandlersUser   map[string]Actioner   // handler of commands fired by user
+	handlersUser   map[string]Actioner   // handler of commands fired by user
 
 	//database
 	db *db.DB
@@ -59,7 +67,7 @@ func NewIrcBot(user, nick, password, server, port string, channels []string, DBP
 		channels: channels,
 
 		handlersIntern: make(map[string][]Actioner),
-		HandlersUser:   make(map[string]Actioner),
+		handlersUser:   make(map[string]Actioner),
 		ChIn:           make(chan *IrcMsg),
 		ChOut:          make(chan *IrcMsg),
 		ChError:        make(chan error),
@@ -157,12 +165,11 @@ func (b *IrcBot) AddInternAction(a Actioner) {
 //command is the commands send by user, action is an ActionFunc callback
 func (b *IrcBot) AddUserAction(a Actioner) {
 	for _, cmd := range a.Command() {
-		b.HandlersUser[cmd] = a
+		b.handlersUser[cmd] = a
 	}
 }
 
-//DBConnection return a new connection do the database
-//use it if your custom action need to access the database
+//DBConnection return a new connection do the database. Use it if your custom action need to access the database
 func (b *IrcBot) DBConnection() (*db.DB, error) {
 	return db.Open(b.db.Path())
 }
@@ -262,7 +269,7 @@ func (b *IrcBot) handleActionIn() {
 					//query message, respond to user, not channel
 					msg.CmdParams[0] = msg.Nick()
 				}
-				action, ok := b.HandlersUser[msg.Trailing[0]]
+				action, ok := b.handlersUser[msg.Trailing[0]]
 				if ok {
 					action.Do(b, msg)
 				}
