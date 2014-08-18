@@ -71,32 +71,58 @@ func insertUrl(url, nick string, db *db.DB) {
 	fmt.Printf("INFO: insert url(%s) succeed\n", url)
 }
 
-// type URLActionner struct {
-// 	db *ircbot.DB
-// }
+type URL struct {
+	db *db.DB
+}
 
-// func (u *URLActionner) Command() []string {
-// 	return []string{
-// 		".url",
-// 	}
-// }
+func NewURL(bot *ircbot.IrcBot) *URL {
+	conn, err := bot.DBConnection()
+	if err != nil {
+		panic(err)
+	}
 
-// func (u *URLActionner) Usage() string {
-// 	return ""
-// }
+	initDB(conn)
+	return &URL{
+		db: conn,
+	}
+}
 
-// func (u *URLActionner) Do(b *ircbot.IrcBot, m *ircbot.IrcMsg) {
-// 	sql := "SELECT url FROM urls"
+func (act *URL) initDB(db *db.DB) {
+	if err := db.Exec(`CREATE TABLE IF NOT EXISTS urls(
+		id INTEGER CONSTRAINT url_PK PRIMARY KEY,
+		nick STRING,
+		url TEXT,
+		timestamp INTEGER)`); err != nil {
 
-// 	if len(m.Trailing) > 2 {
-// 		q := strings.Join(m.Trailing[1:], " ")
-// 		sql = sql + " WHERE url LIKE %" + q + "%"
-// 	}
+		panic(err)
+	}
+}
 
-// 	for s, err := b.DB.Query(sql); err == nil; err = s.Next() {
-// 		var url string
-// 		s.Scan(&url)
-// 		b.Say(m.Channel(), url)
-// 	}
+func (u *URL) Command() []string {
+	return []string{
+		".url",
+	}
+}
 
-// }
+func (u *URL) Usage() string {
+	return ".url :args"
+}
+
+func (u *URL) Do(b *ircbot.IrcBot, m *ircbot.IrcMsg) {
+	sql := "SELECT url FROM urls "
+	limit := 5
+
+	if len(m.Trailing) > 1 {
+		q := strings.Join(m.Trailing[1:], " ")
+		sql = sql + " WHERE url LIKE '%" + q + "%' "
+		limit = 10
+	}
+
+	sql = sql + fmt.Sprintf(" ORDER BY timestamp DESC LIMIT %d ", limit)
+
+	for s, err := u.db.Query(sql); err == nil; err = s.Next() {
+		var url string
+		s.Scan(&url)
+		b.Say(m.Channel(), url)
+	}
+}
