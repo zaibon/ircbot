@@ -120,9 +120,14 @@ func (u *URL) Do(b *ircbot.IrcBot, m *ircbot.IrcMsg) {
 
 	sql = sql + fmt.Sprintf(" ORDER BY timestamp DESC LIMIT %d ", limit)
 
-	for s, err := u.db.Query(sql); err == nil; err = s.Next() {
+	stmt, err := u.db.Query(sql)
+	for ; err == nil; err = stmt.Next() {
 		var url string
-		s.Scan(&url)
+		stmt.Scan(&url)
 		b.Say(m.Channel(), url)
+	}
+
+	if err := stmt.Close(); err != nil {
+		fmt.Printf("ERROR commit : %s\n", err)
 	}
 }
