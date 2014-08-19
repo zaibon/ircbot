@@ -41,21 +41,45 @@ func (d *DB) Close() error {
 	return d.conn.Close()
 }
 
+func (d *DB) Begin() error {
+	return d.conn.Begin()
+}
+
+func (d *DB) Commit() error {
+	return d.conn.Commit()
+}
+
 func (d *DB) Query(sql string, args ...interface{}) (*sqlite3.Stmt, error) {
 	logger.Printf("QUERY %s", sql)
 	stmt, err := d.conn.Query(sql, args...)
 	if err != nil && err != io.EOF {
 		logger.Printf("error query : %s : %s\n", sql, err.Error())
+		return nil, err
 	}
 	return stmt, err
 }
 
 func (d *DB) Exec(sql string, args ...interface{}) error {
 	logger.Printf("EXEC %s", sql)
+
+	if err := d.conn.Begin(); err != nil {
+		logger.Printf("error begin exec :%s\n", err)
+		return err
+	}
+
 	err := d.conn.Exec(sql, args...)
 	if err != nil {
 		logger.Printf("error exec : %s : %s", sql, err.Error())
+		if err := d.conn.Rollback(); err != nil {
+			logger.Printf("error rollback exec : %s", err.Error())
+			return err
+		}
 	}
+
+	if err := d.conn.Commit(); err != nil {
+		logger.Printf("error commit exec : %s", err.Error())
+	}
+
 	return err
 }
 
@@ -63,14 +87,3 @@ func (d *DB) Prepare(sql string) (*sqlite3.Stmt, error) {
 	logger.Println("PREPARE %s", sql)
 	return d.conn.Prepare(sql)
 }
-
-// func logMsg(m *IrcMsg, db *DB) error {
-// 	sql := "INSERT INTO logs (nick,message,channel,timestamp) VALUES ($nick,$message,$channel,$timestamp)"
-
-// 	msg := strings.Join(m.Trailing, " ")
-// 	if err := db.Exec(sql, m.Nick(), msg, m.Channel(), time.Now()); err != nil {
-// 		db.log.Printf("error inserting logs : %s", err.Error())
-// 		return err
-// 	}
-// 	return nil
-// }
