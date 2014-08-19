@@ -53,7 +53,7 @@ func TestParseLine(t *testing.T) {
 		actual := &IrcMsg{}
 		actual.parseline(tt.input)
 		if !equal(actual, tt.expect) {
-			t.Errorf("input %s\nexpected %+v\nactual %+v\n", tt.input, tt.expect, actual)
+			t.Errorf("\ninput %s\nexpected %+v\nactual %+v\n", tt.input, tt.expect, actual)
 		}
 	}
 }
@@ -81,7 +81,7 @@ func TestNick(t *testing.T) {
 		actual := &IrcMsg{}
 		actual.parseline(tt.input)
 		if actual.Nick() != tt.expect {
-			t.Errorf("input %s\nexpected %+v\nactual %+v\n", tt.input, tt.expect, actual.Nick())
+			t.Errorf("\ninput %s\nexpected %+v\nactual %+v\n", tt.input, tt.expect, actual.Nick())
 		}
 	}
 }
@@ -92,11 +92,11 @@ var channelTestTable = []struct {
 }{
 	{
 		":weber.freenode.net NOTICE * :*** Looking up your hostname... ",
-		"",
+		"*",
 	},
 	{
 		":zbitest MODE zbitest :+i ",
-		"",
+		"zbitest",
 	},
 	{
 		":Zaibon!~zaibon@142.ip-37-187-37.eu PRIVMSG #zbitest :.h",
@@ -104,12 +104,12 @@ var channelTestTable = []struct {
 	},
 }
 
-func ChannelNick(t *testing.T) {
+func TestChannel(t *testing.T) {
 	for _, tt := range channelTestTable {
 		actual := &IrcMsg{}
 		actual.parseline(tt.input)
 		if actual.Channel() != tt.expect {
-			t.Errorf("input %s\nexpected %+v\nactual %+v\n", tt.input, tt.expect, actual.Nick())
+			t.Errorf("\ninput %s\nexpected %+v\nactual %+v\n", tt.input, tt.expect, actual.Channel())
 		}
 	}
 }
