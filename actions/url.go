@@ -121,6 +121,11 @@ func (u *URL) Do(b *ircbot.IrcBot, m *ircbot.IrcMsg) {
 	sql = sql + fmt.Sprintf(" ORDER BY timestamp DESC LIMIT %d ", limit)
 
 	stmt, err := u.db.Query(sql)
+	if err != nil {
+		fmt.Printf("ERROR query db :%s", err)
+		return
+	}
+
 	for ; err == nil; err = stmt.Next() {
 		var url string
 		stmt.Scan(&url)
