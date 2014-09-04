@@ -16,10 +16,10 @@ func (h *Help) Usage() string {
 }
 
 func (h *Help) Do(b *ircbot.IrcBot, m *ircbot.IrcMsg) {
-	var output string
+	// var output string
 
-	for cmd, _ := range b.HandlersUser {
-		output += cmd + ", "
-	}
-	b.Say(m.Channel(), output[:len(output)-2])
+	// for cmd, _ := range b.HandlersUser {
+	// 	output += cmd + ", "
+	// }
+	// b.Say(m.Channel(), output[:len(output)-2])
 }

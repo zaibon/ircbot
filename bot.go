@@ -22,7 +22,7 @@ type IrcBot struct {
 
 	// server info
 	server   string
-	port     string
+	port     uint
 	channels []string
 
 	// tcp communication
@@ -57,7 +57,7 @@ type IrcBot struct {
 	db *db.DB
 }
 
-func NewIrcBot(user, nick, password, server, port string, channels []string, DBPath string) *IrcBot {
+func NewIrcBot(user, nick, password, server string, port uint, channels []string, DBPath string) *IrcBot {
 	bot := IrcBot{
 		User:     user,
 		Nick:     nick,
@@ -191,7 +191,7 @@ func (b *IrcBot) String() string {
 }
 
 func (b *IrcBot) url() string {
-	return fmt.Sprintf("%s:%s", b.server, b.port)
+	return fmt.Sprintf("%s:%d", b.server, b.port)
 }
 
 func (b *IrcBot) join() {
