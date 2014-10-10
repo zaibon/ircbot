@@ -34,7 +34,9 @@ func (m *IrcMsg) parseline(line string) {
 	}
 
 	cmdAndParams := strings.Fields(line[(prefixEnd + 1) : trailingStart+1])
-	m.Command = cmdAndParams[0]
+	if len(cmdAndParams) > 0 {
+		m.Command = cmdAndParams[0]
+	}
 	if len(cmdAndParams) > 1 {
 		m.CmdParams = cmdAndParams[1:]
 	}
