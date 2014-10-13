@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 
-	"code.google.com/p/go-sqlite/go1/sqlite3"
+	"github.com/mxk/go-sqlite/sqlite3"
 )
 
 var logger = log.New(os.Stdout, "DATABASE :", log.Ldate|log.Ltime)

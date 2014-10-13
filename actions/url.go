@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"code.google.com/p/go-sqlite/go1/sqlite3"
+	"github.com/mxk/go-sqlite/sqlite3"
 
 	"github.com/Zaibon/ircbot"
 	db "github.com/Zaibon/ircbot/database"
