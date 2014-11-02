@@ -3,18 +3,18 @@ ircbot
 
 Simple irc bot package in Go
 
-Example of implementation can be found at ttps://github.com/Zaibon/zbibot
+Example of implementation can be found at ttps://github.com/zaibon/zbibot
 
 ##installation
 ````bash
-go get github.com/Zaibon/ircbot
+go get github.com/zaibon/ircbot
 ````
 
 ##usage
 ````go
 import (
-	"github.com/Zaibon/ircbot"
-	"github.com/Zaibon/ircbot/actions"
+	"github.com/zaibon/ircbot"
+	"github.com/zaibon/ircbot/actions"
 )
 
 
