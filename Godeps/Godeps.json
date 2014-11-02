@@ -1,0 +1,23 @@
+{
+	"ImportPath": "github.com/zaibon/ircbot",
+	"GoVersion": "go1.3.3",
+	"Packages": [
+		"./..."
+	],
+	"Deps": [
+		{
+			"ImportPath": "code.google.com/p/cascadia",
+			"Comment": "null-30",
+			"Rev": "4f03c71bc42ba0015a68bea86422f0ecbb71bf70"
+		},
+		{
+			"ImportPath": "code.google.com/p/go.net/html",
+			"Comment": "null-173",
+			"Rev": "4231557d7c726df4cf9a4e8cdd8a417c8c200bdb"
+		},
+		{
+			"ImportPath": "github.com/mxk/go-sqlite/sqlite3",
+			"Rev": "167da9432e1f4602e95ea67b67051cfa34412e3f"
+		}
+	]
+}
