@@ -1,6 +1,6 @@
 package actions
 
-import "github.com/Zaibon/ircbot"
+import "github.com/zaibon/ircbot"
 
 type Help struct{}
 

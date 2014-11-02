@@ -3,7 +3,7 @@ package actions
 import (
 	"fmt"
 
-	"github.com/Zaibon/ircbot"
+	"github.com/zaibon/ircbot"
 )
 
 type Greet struct{}

@@ -5,7 +5,7 @@ import (
 	"math/rand"
 	"strings"
 
-	"github.com/Zaibon/ircbot"
+	"github.com/zaibon/ircbot"
 )
 
 type Respond struct{}

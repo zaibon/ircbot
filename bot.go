@@ -10,7 +10,7 @@ import (
 	"net/textproto"
 	"strings"
 
-	db "github.com/Zaibon/ircbot/database"
+	db "github.com/zaibon/ircbot/database"
 )
 
 //IrcBot represent the bot in general
