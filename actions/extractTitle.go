@@ -1,6 +1,10 @@
 package actions
 
 import (
+	"errors"
+
+	"code.google.com/p/cascadia"
+
 	"fmt"
 	"io"
 	"net/http"
@@ -9,11 +13,17 @@ import (
 
 	"code.google.com/p/go.net/html"
 
-	"github.com/Zaibon/ircbot"
+	"github.com/zaibon/ircbot"
 )
 
 type TitleExtract struct {
-	name string
+	selector cascadia.Selector
+}
+
+func NewTitleExtract() *TitleExtract {
+	return &TitleExtract{
+		selector: cascadia.MustCompile("title"),
+	}
 }
 
 func (u *TitleExtract) Command() []string {
@@ -27,25 +37,25 @@ func (u *TitleExtract) Usage() string {
 }
 
 func (u *TitleExtract) Do(b *ircbot.IrcBot, m *ircbot.IrcMsg) {
-	do(b, m)
+	u.do(b, m)
 }
 
-func do(b *ircbot.IrcBot, m *ircbot.IrcMsg) {
+func (u *TitleExtract) do(b *ircbot.IrcBot, m *ircbot.IrcMsg) {
 	for _, word := range m.Trailing {
 
 		if !strings.Contains(word, "http") {
 			continue
 		}
 
-		u, err := url.Parse(word)
+		URL, err := url.Parse(word)
 		if err != nil {
 			fmt.Println("err parse url: ", err)
 			continue
 		}
 
 		go func() {
-			fmt.Println("INFO : start extractTitle,", u.String())
-			title, err := extractTitle(u.String())
+			fmt.Println("INFO : start extractTitle,", URL.String())
+			title, err := extractTitle(URL.String(), u.selector)
 			if err == nil {
 				b.Say(m.Channel(), title)
 			}
@@ -53,7 +63,7 @@ func do(b *ircbot.IrcBot, m *ircbot.IrcMsg) {
 	}
 }
 
-func extractTitle(url string) (string, error) {
+func extractTitle(url string, selector cascadia.Selector) (string, error) {
 	resp, err := http.Get(url)
 	if err != nil {
 		return "", err
@@ -64,31 +74,25 @@ func extractTitle(url string) (string, error) {
 
 	switch {
 	case strings.Contains(contentType, "text/html"):
-		return parseHTML(resp.Body)
+		return cssSelectHTML(resp.Body, selector)
 	default:
 		return "", fmt.Errorf("mime not supported")
 	}
 }
 
-func parseHTML(r io.Reader) (string, error) {
+func cssSelectHTML(r io.Reader, selector cascadia.Selector) (string, error) {
 	doc, err := html.Parse(r)
 	if err != nil {
 		return "", err
 	}
-	title := ""
-	var f func(*html.Node)
-	f = func(n *html.Node) {
-		if n.Type == html.ElementNode && n.Data == "title" {
-			title = n.FirstChild.Data
-			return
-		}
-		for c := n.FirstChild; c != nil; c = c.NextSibling {
-			f(c)
-		}
+
+	var title string
+	titleNode := selector.MatchFirst(doc)
+	if titleNode != nil && titleNode.FirstChild != nil {
+		title = titleNode.FirstChild.Data
 	}
-	f(doc)
-	if title != "" {
-		return title, nil
+	if title == "" {
+		return title, errors.New("no Title")
 	}
-	return "", fmt.Errorf("no title")
+	return strings.TrimSpace(title), nil
 }

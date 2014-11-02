@@ -1,35 +1,49 @@
 package actions
 
-import "testing"
+import (
+	"reflect"
+	"strings"
 
-var instance = &TitleExtract{}
+	"testing"
+)
 
 var testTable = []struct {
 	input  string
 	expect string
 }{
-	{"http://google.com", "Google"},
-	{"http://linux.org", "Linux.org"},
+	{`<!DOCTYPE html>
+<html>
+<head>
+	<title>Hello world</title>
+</head>
+<body>
+
+</body>
+</html>`, "Hello world"},
+	{`<!DOCTYPE html>
+<html>
+<head>
+	<title>
+	Hello world
+	</title>
+</head>
+<body>
+
+</body>
+</html>`, "Hello world"},
 }
+
+var te *TitleExtract = NewTitleExtract()
 
 func TestTitleExtract(t *testing.T) {
 	for _, tt := range testTable {
-		actual, err := extractTitle(tt.input)
+		r := strings.NewReader(tt.input)
+		actual, err := cssSelectHTML(r, te.selector)
 		if err != nil {
 			t.Error(err)
 		}
-		if actual != tt.expect {
-			t.Errorf("input %s\nexpected %s\nactual %s\n", tt.input, tt.expect, actual)
+		if !reflect.DeepEqual(actual, tt.expect) {
+			t.Errorf("title expected %s ,actual %s\n", tt.expect, actual)
 		}
 	}
-}
-
-var result string
-
-func BenchmarkTitleExtract(b *testing.B) {
-	var t string
-	for i := 0; i < b.N; i++ {
-		t, _ = extractTitle("http://google.com")
-	}
-	result = t
 }
