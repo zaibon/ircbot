@@ -59,6 +59,7 @@ func (u *TitleExtract) do(b *ircbot.IrcBot, m *ircbot.IrcMsg) {
 			if err == nil {
 				b.Say(m.Channel(), title)
 			}
+			fmt.Println("INFO : title %s,", title)
 		}()
 	}
 }

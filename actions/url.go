@@ -129,8 +129,11 @@ func (u *URL) Command() []string {
 	}
 }
 
+const usage = `.url : display last 5 last url past in the channel
+.url <search> : search in saved url for 'search' and display resutls`
+
 func (u *URL) Usage() string {
-	return ".url :args"
+	return usage
 }
 
 func (u *URL) Do(b *ircbot.IrcBot, m *ircbot.IrcMsg) {

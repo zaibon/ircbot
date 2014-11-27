@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"crypto/rand"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"log"
 	"net"
@@ -167,6 +168,28 @@ func (b *IrcBot) AddUserAction(a Actioner) {
 	for _, cmd := range a.Command() {
 		b.handlersUser[cmd] = a
 	}
+}
+
+//GetActionnersCmds returns all registred user actioners commands
+func (b *IrcBot) GetActionnersCmds() []string {
+	var cmds []string
+	for cmd, _ := range b.handlersUser {
+		fmt.Println(cmd)
+		cmds = append(cmds, cmd)
+	}
+	return cmds
+}
+
+//GetActionUsage returns the Actioner from the user actions map or return an error if
+//no action if found with this name
+//Usefull if you want to access actioner information within other actioner
+//see Help actionner for example
+func (b *IrcBot) GetActioner(actionName string) (Actioner, error) {
+	actioner, ok := b.handlersUser[actionName]
+	if !ok {
+		return nil, errors.New("no action found with that name")
+	}
+	return actioner, nil
 }
 
 //DBConnection return a new connection do the database. Use it if your custom action need to access the database
