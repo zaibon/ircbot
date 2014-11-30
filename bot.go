@@ -287,7 +287,7 @@ func (b *IrcBot) handleActionIn() {
 			// fmt.Println("DEBUG :", msg)
 
 			//action fired by user
-			if msg.Command == "PRIVMSG" && strings.HasPrefix(msg.Trailing[0], ".") {
+			if msg.Command == "PRIVMSG" && len(msg.Trailing) > 0 && strings.HasPrefix(msg.Trailing[0], ".") {
 				if msg.Channel() == b.Nick {
 					//query message, respond to user, not channel
 					msg.CmdParams[0] = msg.Nick()
