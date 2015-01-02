@@ -35,6 +35,7 @@ func initDB(db *db.DB) {
 		nick STRING,
 		url TEXT,
 		hit INTEGER,
+		channel STRING,
 		timestamp INTEGER)`); err != nil {
 
 		panic(err)
@@ -68,13 +69,13 @@ func (u *URLLog) Do(b *ircbot.IrcBot, m *ircbot.IrcMsg) {
 			fmt.Println("ERROR: URLLog parse url failed: ", err)
 			continue
 		}
-		insertUrl(URL.String(), m.Nick(), u.db)
+		insertUrl(URL.String(), m.Nick(), m.Channel(), u.db)
 	}
 }
 
-func insertUrl(url, nick string, db *db.DB) {
-	sql := "SELECT url FROM urls WHERE url=$url"
-	q, err := db.Query(sql, url)
+func insertUrl(url, nick, channel string, db *db.DB) {
+	sql := "SELECT url FROM urls WHERE url=$url AND channel=$chan OR channel=''"
+	q, err := db.Query(sql, url, channel)
 	if err != nil && err != io.EOF {
 		fmt.Printf("ERROR: query url failed, %s\n", err)
 		return
@@ -82,8 +83,8 @@ func insertUrl(url, nick string, db *db.DB) {
 
 	if err == io.EOF {
 		//the url is not yet in the db
-		sql = "INSERT INTO urls(nick,url,hit,timestamp) VALUES ($nick,$url,1,$timestamp)"
-		if err := db.Exec(sql, nick, url, time.Now()); err != nil {
+		sql = "INSERT INTO urls(nick,url,hit,timestamp,channel) VALUES ($nick,$url,1,$timestamp,$channel)"
+		if err := db.Exec(sql, nick, url, time.Now(), channel); err != nil {
 			fmt.Printf("ERROR: insert url failed, %s\n", err)
 			return
 		}
@@ -94,8 +95,8 @@ func insertUrl(url, nick string, db *db.DB) {
 
 	q.Close()
 	//the url already exists, update hit counter
-	sql = "UPDATE urls SET hit=hit+1 WHERE url=$url"
-	if err := db.Exec(sql, url); err != nil {
+	sql = "UPDATE urls SET hit=hit+1 WHERE url=$url AND channel=$chan OR channel='' "
+	if err := db.Exec(sql, url, channel); err != nil {
 		fmt.Printf("ERROR update url falied, %s\n", err)
 		return
 	}
@@ -137,14 +138,14 @@ func (u *URL) Usage() string {
 }
 
 func (u *URL) Do(b *ircbot.IrcBot, m *ircbot.IrcMsg) {
-	sql := "SELECT url,hit,nick FROM urls "
 	limit := 5 //hardcoded for now, maybe let the user choose a limit
-
+	sql := "SELECT url,hit,nick FROM urls WHERE "
 	if len(m.Trailing) > 1 {
 		q := strings.Join(m.Trailing[1:], " ")
-		sql = sql + " WHERE url LIKE '%" + q + "%' "
+		sql = sql + " url LIKE '%" + q + "%' AND "
 		limit = 10
 	}
+	sql = sql + " (channel='' OR channel='" + m.Channel() + "' )"
 
 	sql = sql + fmt.Sprintf(" ORDER BY timestamp DESC LIMIT %d ", limit)
 
