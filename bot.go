@@ -9,12 +9,15 @@ import (
 	"log"
 	"net"
 	"net/textproto"
+	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 
 	db "github.com/zaibon/ircbot/database"
 )
 
-//IrcBot represent the bot in general
+//IrcBot represents the bot in general
 type IrcBot struct {
 	// identity
 	User     string
@@ -141,9 +144,12 @@ func (b *IrcBot) Connect() error {
 
 //Disconnect sends QUIT command to server and closes connections
 func (b *IrcBot) Disconnect() {
+	for _, ch := range b.channels {
+		b.Say(ch, "See you soon...")
+	}
 	b.writer.PrintfLine("QUIT")
 	b.conn.Close()
-	b.Exit <- true
+	// b.Exit <- true
 }
 
 //Say makes the bot say text to channel
@@ -287,21 +293,21 @@ func (b *IrcBot) handleActionIn() {
 			// fmt.Println("DEBUG :", msg)
 
 			//action fired by user
-			if msg.Command == "PRIVMSG" && len(msg.Trailing) > 0 && strings.HasPrefix(msg.Trailing[0], ".") {
-				if msg.Channel() == b.Nick {
-					//query message, respond to user, not channel
-					msg.CmdParams[0] = msg.Nick()
-				}
-				action, ok := b.handlersUser[msg.Trailing[0]]
+			if len(msg.Trailing) > 0 {
+				actionUser, ok := b.handlersUser[msg.Trailing[0]]
 				if ok {
-					action.Do(b, msg)
+					if msg.Channel() == b.Nick {
+						//query message, respond to user, not channel
+						msg.CmdParams[0] = msg.Nick()
+					}
+					actionUser.Do(b, msg)
 				}
 			}
 
 			//action fired by event
-			actions, ok := b.handlersIntern[msg.Command]
-			if ok && len(actions) > 0 {
-				for _, action := range actions {
+			actionsIntern, ok := b.handlersIntern[msg.Command]
+			if ok && len(actionsIntern) > 0 {
+				for _, action := range actionsIntern {
 					action.Do(b, msg)
 				}
 			}
@@ -326,12 +332,24 @@ func (b *IrcBot) handlerError() {
 		for {
 			err := <-b.ChError
 			fmt.Printf("error >> %s", err)
-			if err != nil {
-				b.Disconnect()
-				log.Fatalln("ChError ocurs :", err)
-			}
+			// if err != nil {
+			// 	b.Disconnect()
+			// 	log.Fatalln("ChError ocurs :", err)
+			// }
 		}
 	}()
+}
+
+func (b *IrcBot) signlalHandler() {
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, syscall.SIGTERM)
+	for {
+		select {
+		case <-c:
+			fmt.Println("disconnection")
+			b.Disconnect()
+		}
+	}
 }
 
 func (b *IrcBot) errChk(err error) {
