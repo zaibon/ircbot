@@ -1,7 +1,7 @@
 package actions
 
 import (
-	"errors"
+	"github.com/PuerkitoBio/goquery"
 
 	"code.google.com/p/cascadia"
 
@@ -10,8 +10,6 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-
-	"golang.org/x/net/html"
 
 	"github.com/zaibon/ircbot"
 )
@@ -79,21 +77,17 @@ func extractTitle(url string, selector cascadia.Selector) (string, error) {
 	default:
 		return "", fmt.Errorf("mime not supported")
 	}
+
 }
 
 func cssSelectHTML(r io.Reader, selector cascadia.Selector) (string, error) {
-	doc, err := html.Parse(r)
+	doc, err := goquery.NewDocumentFromReader(r)
 	if err != nil {
 		return "", err
 	}
-
-	var title string
-	titleNode := selector.MatchFirst(doc)
-	if titleNode != nil && titleNode.FirstChild != nil {
-		title = titleNode.FirstChild.Data
-	}
-	if title == "" {
-		return title, errors.New("no Title")
-	}
-	return strings.TrimSpace(title), nil
+	title := ""
+	doc.Find("title").Each(func(i int, s *goquery.Selection) {
+		title = title + s.Text()
+	})
+	return title, nil
 }
