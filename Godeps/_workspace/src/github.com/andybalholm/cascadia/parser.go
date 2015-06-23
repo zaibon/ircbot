@@ -2,12 +2,13 @@
 package cascadia
 
 import (
-	"code.google.com/p/go.net/html"
 	"errors"
 	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"golang.org/x/net/html"
 )
 
 // a parser for CSS selectors
@@ -532,6 +533,8 @@ func (p *parser) parsePseudoclassSelector() (Selector, error) {
 		return onlyChildSelector(false), nil
 	case "only-of-type":
 		return onlyChildSelector(true), nil
+	case "input":
+		return inputSelector, nil
 	case "empty":
 		return emptyElementSelector, nil
 	}

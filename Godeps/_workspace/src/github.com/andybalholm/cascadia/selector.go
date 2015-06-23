@@ -2,10 +2,11 @@ package cascadia
 
 import (
 	"bytes"
-	"code.google.com/p/go.net/html"
 	"fmt"
 	"regexp"
 	"strings"
+
+	"golang.org/x/net/html"
 )
 
 // the Selector type, and functions for creating them
@@ -427,6 +428,11 @@ func onlyChildSelector(ofType bool) Selector {
 
 		return count == 1
 	}
+}
+
+// inputSelector is a Selector that matches input, select, textarea and button elements.
+func inputSelector(n *html.Node) bool {
+	return n.Type == html.ElementNode && (n.Data == "input" || n.Data == "select" || n.Data == "textarea" || n.Data == "button")
 }
 
 // emptyElementSelector is a Selector that matches empty elements.
