@@ -3,13 +3,13 @@ package actions
 import (
 	"github.com/PuerkitoBio/goquery"
 
-	"code.google.com/p/cascadia"
-
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/andybalholm/cascadia"
 
 	"github.com/zaibon/ircbot"
 )
