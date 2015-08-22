@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	log "github.com/Sirupsen/logrus"
+
 	"github.com/mxk/go-sqlite/sqlite3"
 
 	"github.com/zaibon/ircbot"
@@ -66,7 +68,7 @@ func (u *URLLog) Do(b *ircbot.IrcBot, m *ircbot.IrcMsg) {
 
 		URL, err := url.Parse(word)
 		if err != nil {
-			fmt.Println("ERROR: URLLog parse url failed: ", err)
+			log.WithField("error", err).Errorln("pasre url failed")
 			continue
 		}
 		insertUrl(URL.String(), m.Nick(), m.Channel(), u.db)
@@ -77,7 +79,7 @@ func insertUrl(url, nick, channel string, db *db.DB) {
 	sql := "SELECT url FROM urls WHERE url=$url AND channel=$chan OR channel=''"
 	q, err := db.Query(sql, url, channel)
 	if err != nil && err != io.EOF {
-		fmt.Printf("ERROR: query url failed, %s\n", err)
+		log.WithField("error", err).Errorln("search url in database failed")
 		return
 	}
 
@@ -85,11 +87,11 @@ func insertUrl(url, nick, channel string, db *db.DB) {
 		//the url is not yet in the db
 		sql = "INSERT INTO urls(nick,url,hit,timestamp,channel) VALUES ($nick,$url,1,$timestamp,$channel)"
 		if err := db.Exec(sql, nick, url, time.Now(), channel); err != nil {
-			fmt.Printf("ERROR: insert url failed, %s\n", err)
+			log.WithField("error", err).Errorln("insert url in database failed")
 			return
 		}
 
-		fmt.Printf("INFO: insert url(%s) succeed\n", url)
+		log.WithField("url", url).Debugln("insert url in database succeed")
 		return
 	}
 
@@ -97,10 +99,10 @@ func insertUrl(url, nick, channel string, db *db.DB) {
 	//the url already exists, update hit counter
 	sql = "UPDATE urls SET hit=hit+1 WHERE url=$url AND channel=$chan OR channel='' "
 	if err := db.Exec(sql, url, channel); err != nil {
-		fmt.Printf("ERROR update url falied, %s\n", err)
+		log.WithField("error", err).Errorln("update url in database failed")
 		return
 	}
-	fmt.Printf("INFO: update url(%s) hit succeed\n", url)
+	log.WithField("url", url).Debugln("update hit number succeed")
 }
 
 var (
@@ -172,6 +174,6 @@ func (u *URL) Do(b *ircbot.IrcBot, m *ircbot.IrcMsg) {
 	}
 
 	if err := stmt.Close(); err != nil {
-		fmt.Printf("ERROR commit : %s\n", err)
+		log.Errorln("commit failed")
 	}
 }

@@ -2,6 +2,7 @@ package actions
 
 import (
 	"github.com/PuerkitoBio/goquery"
+	log "github.com/Sirupsen/logrus"
 
 	"fmt"
 	"io"
@@ -47,17 +48,22 @@ func (u *TitleExtract) do(b *ircbot.IrcBot, m *ircbot.IrcMsg) {
 
 		URL, err := url.Parse(word)
 		if err != nil {
-			fmt.Println("err parse url: ", err)
+			log.WithField("url", word).Errorln("error parsing url")
 			continue
 		}
 
 		go func() {
-			fmt.Println("INFO : start extractTitle,", URL.String())
+			log.WithField("url", URL.String()).Debugln("Start extract title")
+
 			title, err := extractTitle(URL.String(), u.selector)
 			if err == nil {
 				b.Say(m.Channel(), title)
 			}
-			fmt.Println("INFO : title %s,", title)
+
+			log.WithFields(log.Fields{
+				"url":   URL.String(),
+				"title": title,
+			}).Debugln("title found")
 		}()
 	}
 }

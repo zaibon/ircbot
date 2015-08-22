@@ -6,13 +6,14 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
-	"log"
 	"net"
 	"net/textproto"
 	"os"
 	"os/signal"
 	"strings"
 	"syscall"
+
+	log "github.com/Sirupsen/logrus"
 
 	db "github.com/zaibon/ircbot/database"
 )
@@ -82,7 +83,10 @@ func NewIrcBot(user, nick, password, server string, port uint, channels []string
 	var err error
 	bot.db, err = db.Open(DBPath)
 	if err != nil {
-		panic(err)
+		log.WithFields(log.Fields{
+			"db Path": DBPath,
+			"error":   err,
+		}).Panicln("unable to open database")
 	}
 
 	return &bot
@@ -97,30 +101,29 @@ func (b *IrcBot) Connect() error {
 	//launch a go routine that handle errors
 	// b.handleError()
 
-	log.Println("Info> connection to", b.url())
+	log.WithField("address", b.url()).Debugln("Connection")
+
+	var conn net.Conn
+	var err error
 
 	if b.encrypted {
 		cert, err := tls.LoadX509KeyPair("cert.pem", "key.pem")
 		if err != nil {
+			log.Errorln("error during certificate loading")
 			return err
 		}
 
 		config := tls.Config{Certificates: []tls.Certificate{cert}}
 		config.Rand = rand.Reader
-		conn, err := tls.Dial("tcp", b.url(), &config)
-		if err != nil {
-			return err
-
-		}
-		b.conn = conn
+		conn, err = tls.Dial("tcp", b.url(), &config)
 	} else {
-		conn, err := net.Dial("tcp", b.url())
-		if err != nil {
-			return err
-
-		}
-		b.conn = conn
+		conn, err = net.Dial("tcp", b.url())
 	}
+	if err != nil {
+		log.WithField("address", b.url()).Errorln("Dial server")
+		return err
+	}
+	b.conn = conn
 
 	r := bufio.NewReader(b.conn)
 	w := bufio.NewWriter(b.conn)
@@ -144,11 +147,14 @@ func (b *IrcBot) Connect() error {
 
 //Disconnect sends QUIT command to server and closes connections
 func (b *IrcBot) Disconnect() {
+	log.Debugln("disconnection...")
 	for _, ch := range b.channels {
+		log.WithField("channel", ch).Debugln("leaving")
 		b.Say(ch, "See you soon...")
 	}
 	b.writer.PrintfLine("QUIT")
 	b.conn.Close()
+	log.Debugln("connection close")
 	// b.Exit <- true
 }
 
@@ -193,6 +199,7 @@ func (b *IrcBot) GetActionnersCmds() []string {
 func (b *IrcBot) GetActioner(actionName string) (Actioner, error) {
 	actioner, ok := b.handlersUser[actionName]
 	if !ok {
+		log.WithField("action name", actionName).Warningln("action not found")
 		return nil, errors.New("no action found with that name")
 	}
 	return actioner, nil
@@ -227,7 +234,7 @@ func (b *IrcBot) join() {
 
 	for _, v := range b.channels {
 		s := fmt.Sprintf("JOIN %s", v)
-		fmt.Println("irc >> ", s)
+		log.WithField("channel", v).Debugln("join")
 		b.writer.PrintfLine(s)
 	}
 }
@@ -236,7 +243,10 @@ func (b *IrcBot) identify() {
 	//idenify with nickserv
 	if b.password != "" {
 		s := fmt.Sprintf("PRIVMSG NickServ :identify %s %s", b.Nick, b.password)
-		fmt.Println("irc >> ", s)
+		log.WithFields(log.Fields{
+			"nick":   b.Nick,
+			"passwd": "*****",
+		}).Debugln("identify")
 		b.writer.PrintfLine(s)
 	}
 }
@@ -249,9 +259,11 @@ func (b *IrcBot) listen() {
 			//block read line from socket
 			line, err := b.reader.ReadLine()
 			if err != nil {
+				log.WithFields(log.Fields{
+					"error": err,
+				}).Errorln("error reading socket")
 				b.ChError <- err
 			}
-			fmt.Println("DEBUG:", line)
 
 			//convert line into IrcMsg
 			msg := ParseLine(line)
@@ -264,7 +276,7 @@ func (b *IrcBot) listen() {
 			if msg.Command == "PING" {
 				out := strings.Replace(line, "PING", "PONG", -1)
 				b.writer.PrintfLine(out)
-				fmt.Println("DEBUG:", out)
+				log.Debugln(out)
 			}
 
 			if msg.Command == "PRIVMSG" || msg.Command == "JOIN" {
@@ -290,7 +302,13 @@ func (b *IrcBot) handleActionIn() {
 		for {
 			//receive new message
 			msg := <-b.ChIn
-			// fmt.Println("DEBUG :", msg)
+			log.WithFields(log.Fields{
+				"channel": msg.Channel(),
+				"nick":    msg.Nick(),
+				"command": msg.Command,
+				"params":  strings.Join(msg.CmdParams, " "),
+				"message": strings.Join(msg.Trailing, " "),
+			}).Debugln("receive")
 
 			//action fired by user
 			if len(msg.Trailing) > 0 {
@@ -320,9 +338,17 @@ func (b *IrcBot) handleActionOut() {
 		for {
 			msg := <-b.ChOut
 
-			s := fmt.Sprintf("%s %s %s", msg.Command, strings.Join(msg.CmdParams, " "), strings.Join(msg.Trailing, " "))
-			fmt.Println("irc >> ", s)
+			params := strings.Join(msg.CmdParams, " ")
+			content := strings.Join(msg.Trailing, " ")
+			s := fmt.Sprintf("%s %s %s", msg.Command, params, content)
 			b.writer.PrintfLine(s)
+			log.WithFields(log.Fields{
+				"channel": msg.Channel(),
+				"nick":    msg.Nick(),
+				"command": msg.Command,
+				"params":  strings.Join(msg.CmdParams, " "),
+				"message": strings.Join(msg.Trailing, " "),
+			}).Debugln("send")
 		}
 	}()
 }
@@ -331,7 +357,7 @@ func (b *IrcBot) handlerError() {
 	go func() {
 		for {
 			err := <-b.ChError
-			fmt.Printf("error >> %s", err)
+			log.WithField("error", err).Errorln("error")
 			// if err != nil {
 			// 	b.Disconnect()
 			// 	log.Fatalln("ChError ocurs :", err)
@@ -354,7 +380,6 @@ func (b *IrcBot) signlalHandler() {
 
 func (b *IrcBot) errChk(err error) {
 	if err != nil {
-		log.Println("ChError> ", err)
 		b.ChError <- err
 	}
 }

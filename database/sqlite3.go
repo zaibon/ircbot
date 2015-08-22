@@ -2,13 +2,12 @@ package ircbot
 
 import (
 	"io"
-	"log"
-	"os"
+	"strings"
+
+	log "github.com/Sirupsen/logrus"
 
 	"github.com/mxk/go-sqlite/sqlite3"
 )
-
-var logger = log.New(os.Stdout, "DATABASE :", log.Ldate|log.Ltime)
 
 type DB struct {
 	conn *sqlite3.Conn
@@ -17,7 +16,10 @@ type DB struct {
 func Open(path string) (*DB, error) {
 	conn, err := sqlite3.Open(path)
 	if err != nil {
-		logger.Println("error opening database %s : %s\n", path, err.Error())
+		log.WithFields(log.Fields{
+			"path":  path,
+			"error": err,
+		}).Errorln("open database")
 		return nil, err
 	}
 
@@ -50,40 +52,65 @@ func (d *DB) Commit() error {
 }
 
 func (d *DB) Query(sql string, args ...interface{}) (*sqlite3.Stmt, error) {
-	logger.Printf("QUERY %s", sql)
+	log.WithFields(log.Fields{
+		"query": flat(sql),
+	}).Debugln("query")
+
 	stmt, err := d.conn.Query(sql, args...)
 	if err != nil && err != io.EOF {
-		logger.Printf("error query : %s : %s\n", sql, err.Error())
+		log.WithFields(log.Fields{
+			"query": flat(sql),
+			"error": err,
+		}).Errorln("error query")
 		return nil, err
 	}
 	return stmt, err
 }
 
 func (d *DB) Exec(sql string, args ...interface{}) error {
-	logger.Printf("EXEC %s", sql)
+	log.WithFields(log.Fields{
+		"query": flat(sql),
+	}).Debugln("exec")
 
 	if err := d.conn.Begin(); err != nil {
-		logger.Printf("error begin exec :%s\n", err)
+		log.WithFields(log.Fields{
+			"query": flat(sql),
+			"error": err,
+		}).Errorln("begin exec error")
 		return err
 	}
 
 	err := d.conn.Exec(sql, args...)
 	if err != nil {
-		logger.Printf("error exec : %s : %s", sql, err.Error())
+		log.WithFields(log.Fields{
+			"query": flat(sql),
+			"error": err,
+		}).Errorln("error exec")
+
 		if err := d.conn.Rollback(); err != nil {
-			logger.Printf("error rollback exec : %s", err.Error())
+			log.WithFields(log.Fields{
+				"query": flat(sql),
+				"error": err,
+			}).Errorln("error rollback exec")
 			return err
 		}
 	}
 
 	if err := d.conn.Commit(); err != nil {
-		logger.Printf("error commit exec : %s", err.Error())
+		log.WithFields(log.Fields{
+			"query": flat(sql),
+			"error": err,
+		}).Errorln("error commit exec")
 	}
 
 	return err
 }
 
 func (d *DB) Prepare(sql string) (*sqlite3.Stmt, error) {
-	logger.Println("PREPARE %s", sql)
+	log.WithField("query", flat(sql)).Debugln("prepare")
 	return d.conn.Prepare(sql)
+}
+
+func flat(s string) string {
+	return strings.Replace(s, "\n", " ", -1)
 }

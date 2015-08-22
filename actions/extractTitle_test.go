@@ -1,8 +1,9 @@
 package actions
 
 import (
-	"reflect"
 	"strings"
+
+	"github.com/stretchr/testify/assert"
 
 	"testing"
 )
@@ -30,7 +31,9 @@ var testTable = []struct {
 <body>
 
 </body>
-</html>`, "Hello world"},
+</html>`, `
+	Hello world
+	`},
 }
 
 var te *TitleExtract = NewTitleExtract()
@@ -39,11 +42,8 @@ func TestTitleExtract(t *testing.T) {
 	for _, tt := range testTable {
 		r := strings.NewReader(tt.input)
 		actual, err := cssSelectHTML(r, te.selector)
-		if err != nil {
-			t.Error(err)
-		}
-		if !reflect.DeepEqual(actual, tt.expect) {
-			t.Errorf("title expected %s ,actual %s\n", tt.expect, actual)
-		}
+
+		assert.NoError(t, err)
+		assert.Equal(t, tt.expect, actual)
 	}
 }
