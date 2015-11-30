@@ -44,6 +44,9 @@ func (m *IrcMsg) parseline(line string) {
 
 //Channel return the channel that send the IrcMsg
 func (m *IrcMsg) Channel() string {
+	if len(m.CmdParams) <= 0 {
+		return ""
+	}
 	return m.CmdParams[0]
 }
 
