@@ -2,7 +2,7 @@ package actions
 
 import (
 	"github.com/PuerkitoBio/goquery"
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 
 	"fmt"
 	"io"

@@ -4,7 +4,7 @@ import (
 	"io"
 	"strings"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/mxk/go-sqlite/sqlite3"
 )

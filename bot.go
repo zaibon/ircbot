@@ -13,12 +13,12 @@ import (
 	"strings"
 	"syscall"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 
 	db "github.com/zaibon/ircbot/database"
 )
 
-//IrcBot represents the bot in general
+// IrcBot represents the bot in general
 type IrcBot struct {
 	// identity
 	User     string
@@ -96,7 +96,7 @@ func NewIrcBot(user, nick, password, server string, port uint, channels []string
 //Public function
 /////////////////
 
-//Connect connects the bot to the server and joins the channels
+// Connect connects the bot to the server and joins the channels
 func (b *IrcBot) Connect() error {
 	//launch a go routine that handle errors
 	// b.handleError()
@@ -145,7 +145,7 @@ func (b *IrcBot) Connect() error {
 	return nil
 }
 
-//Disconnect sends QUIT command to server and closes connections
+// Disconnect sends QUIT command to server and closes connections
 func (b *IrcBot) Disconnect() {
 	log.Debugln("disconnection...")
 	for _, ch := range b.channels {
@@ -158,7 +158,7 @@ func (b *IrcBot) Disconnect() {
 	// b.Exit <- true
 }
 
-//Say makes the bot say text to channel
+// Say makes the bot say text to channel
 func (b *IrcBot) Say(channel string, text string) {
 	msg := NewIrcMsg()
 	msg.Command = "PRIVMSG"
@@ -168,21 +168,21 @@ func (b *IrcBot) Say(channel string, text string) {
 	b.ChOut <- msg
 }
 
-//AddInternAction add an action to excecute on internal command (join,connect,...)
-//command is the internal command to handle, action is an ActionFunc callback
+// AddInternAction add an action to excecute on internal command (join,connect,...)
+// command is the internal command to handle, action is an ActionFunc callback
 func (b *IrcBot) AddInternAction(a Actioner) {
 	addAction(a, b.handlersIntern)
 }
 
-//AddUserAction add an action fired by the user to handle
-//command is the commands send by user, action is an ActionFunc callback
+// AddUserAction add an action fired by the user to handle
+// command is the commands send by user, action is an ActionFunc callback
 func (b *IrcBot) AddUserAction(a Actioner) {
 	for _, cmd := range a.Command() {
 		b.handlersUser[cmd] = a
 	}
 }
 
-//GetActionnersCmds returns all registred user actioners commands
+// GetActionnersCmds returns all registred user actioners commands
 func (b *IrcBot) GetActionnersCmds() []string {
 	var cmds []string
 	for cmd, _ := range b.handlersUser {
@@ -192,10 +192,10 @@ func (b *IrcBot) GetActionnersCmds() []string {
 	return cmds
 }
 
-//GetActionUsage returns the Actioner from the user actions map or return an error if
-//no action if found with this name
-//Usefull if you want to access actioner information within other actioner
-//see Help actionner for example
+// GetActionUsage returns the Actioner from the user actions map or return an error if
+// no action if found with this name
+// Usefull if you want to access actioner information within other actioner
+// see Help actionner for example
 func (b *IrcBot) GetActioner(actionName string) (Actioner, error) {
 	actioner, ok := b.handlersUser[actionName]
 	if !ok {
@@ -205,12 +205,12 @@ func (b *IrcBot) GetActioner(actionName string) (Actioner, error) {
 	return actioner, nil
 }
 
-//DBConnection return a new connection do the database. Use it if your custom action need to access the database
+// DBConnection return a new connection do the database. Use it if your custom action need to access the database
 func (b *IrcBot) DBConnection() (*db.DB, error) {
 	return db.Open(b.db.Path())
 }
 
-//String implements the Stringer interface
+// String implements the Stringer interface
 func (b *IrcBot) String() string {
 	s := fmt.Sprintf("server: %s\n", b.server)
 	s += fmt.Sprintf("port: %s\n", b.port)
