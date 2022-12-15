@@ -213,7 +213,7 @@ func (b *IrcBot) DBConnection() (*db.DB, error) {
 // String implements the Stringer interface
 func (b *IrcBot) String() string {
 	s := fmt.Sprintf("server: %s\n", b.server)
-	s += fmt.Sprintf("port: %s\n", b.port)
+	s += fmt.Sprintf("port: %d\n", b.port)
 	s += fmt.Sprintf("ssl: %t\n", b.encrypted)
 
 	if len(b.channels) > 0 {
