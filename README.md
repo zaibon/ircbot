@@ -1,17 +1,18 @@
-ircbot
-======
+# ircbot
 
 Simple irc bot package in Go
 
 Example of implementation can be found at ttps://github.com/zaibon/zbibot
 
-##installation
+## Installation
+
 ````bash
 go get github.com/zaibon/ircbot
 ````
 
-##usage
-````go
+## Usage
+
+```go
 import (
 	"github.com/zaibon/ircbot"
 	"github.com/zaibon/ircbot/actions"
@@ -23,7 +24,7 @@ func main(){
 	channels := string[]{
 		"go-nuts",
 	}
-	b := ircbot.NewIrcBot("ircbot", "ircbot", "password", "irc.freenode.net", "6667", channels, "irc.db")
+	b := ircbot.NewIrcBot("ircbot", "ircbot", "irc.freenode.net", "6667", channels, "irc.db")
 
 	//add custom intern actions
 	b.AddInternAction(&actions.Greet{})
@@ -35,11 +36,10 @@ func main(){
 	b.AddUserAction(&actions.Help{})
 
 	//connectin to server, listen and serve
-	b.Connect()
+	b.Connect(os.Getenv("MY_PASSWORD"))
 
 	//block until we send something to b.Exit channel
 	<-b.Exit
+	b.Disconnect()
 }
-
-b.Disconnect()
-````
+```

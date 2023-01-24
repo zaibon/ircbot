@@ -26,14 +26,14 @@ func initActionnerTest(t *testing.T) (*textproto.Reader, *textproto.Writer, net.
 	}
 	fmt.Printf("test server listen on %s\n", ln.Addr().String())
 
-	b := ircbot.NewIrcBot("testBot", "testBot", "", "127.0.0.1", 3333, []string{"#test"}, "irc_test.db")
+	b := ircbot.NewIrcBot("testBot", "testBot", "127.0.0.1", 3333, []string{"#test"}, "irc_test.db")
 	b.AddInternAction(&Greet{})
 	b.AddInternAction(NewURLLog(b))
 	b.AddInternAction(NewTitleExtract())
 	b.AddUserAction(&Ping{})
 	b.AddUserAction(NewURL(b))
 
-	b.Connect()
+	b.Connect("")
 
 	fmt.Printf("test server waiting connection...\n")
 	conn, err := ln.Accept()
