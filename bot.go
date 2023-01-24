@@ -21,9 +21,8 @@ import (
 // IrcBot represents the bot in general
 type IrcBot struct {
 	// identity
-	User     string
-	Nick     string
-	password string
+	User string
+	Nick string
 
 	// server info
 	server   string
@@ -62,11 +61,10 @@ type IrcBot struct {
 	db *db.DB
 }
 
-func NewIrcBot(user, nick, password, server string, port uint, channels []string, DBPath string) *IrcBot {
+func NewIrcBot(user, nick, server string, port uint, channels []string, DBPath string) *IrcBot {
 	bot := IrcBot{
 		User:     user,
 		Nick:     nick,
-		password: password,
 		server:   server,
 		port:     port,
 		channels: channels,
@@ -97,7 +95,7 @@ func NewIrcBot(user, nick, password, server string, port uint, channels []string
 /////////////////
 
 // Connect connects the bot to the server and joins the channels
-func (b *IrcBot) Connect() error {
+func (b *IrcBot) Connect(password string) error {
 	//launch a go routine that handle errors
 	// b.handleError()
 
@@ -140,7 +138,7 @@ func (b *IrcBot) Connect() error {
 	b.handleActionOut()
 	b.handlerError()
 
-	b.identify()
+	b.identify(password)
 
 	return nil
 }
@@ -239,10 +237,10 @@ func (b *IrcBot) join() {
 	}
 }
 
-func (b *IrcBot) identify() {
+func (b *IrcBot) identify(password string) {
 	//idenify with nickserv
-	if b.password != "" {
-		s := fmt.Sprintf("PRIVMSG NickServ :identify %s %s", b.Nick, b.password)
+	if password != "" {
+		s := fmt.Sprintf("PRIVMSG NickServ :identify %s %s", b.Nick, password)
 		log.WithFields(log.Fields{
 			"nick":   b.Nick,
 			"passwd": "*****",
@@ -250,7 +248,6 @@ func (b *IrcBot) identify() {
 		b.writer.PrintfLine(s)
 	}
 }
-
 func (b *IrcBot) listen() {
 
 	go func() {
