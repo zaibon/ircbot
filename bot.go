@@ -111,15 +111,23 @@ func (b *IrcBot) Connect(password string) error {
 			return err
 		}
 
-		config := tls.Config{Certificates: []tls.Certificate{cert}}
+		config := tls.Config{
+			MinVersion:   tls.VersionTLS12,
+			Certificates: []tls.Certificate{cert},
+			ServerName:   "hello",
+		}
 		config.Rand = rand.Reader
 		conn, err = tls.Dial("tcp", b.url(), &config)
+		if err != nil {
+			log.WithField("address", b.url()).Errorln("Dial server")
+			return err
+		}
 	} else {
 		conn, err = net.Dial("tcp", b.url())
-	}
-	if err != nil {
-		log.WithField("address", b.url()).Errorln("Dial server")
-		return err
+		if err != nil {
+			log.WithField("address", b.url()).Errorln("Dial server")
+			return err
+		}
 	}
 	b.conn = conn
 
