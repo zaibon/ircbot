@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/PuerkitoBio/goquery v1.9.2
-	github.com/andybalholm/cascadia v1.3.2
+	github.com/andybalholm/cascadia v1.3.3
 	github.com/mxk/go-sqlite v0.0.0-20140611214908-167da9432e1f
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.10.0
